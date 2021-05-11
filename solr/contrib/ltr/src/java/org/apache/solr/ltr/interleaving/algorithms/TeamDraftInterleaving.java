@@ -82,7 +82,7 @@ public class TeamDraftInterleaving implements Interleaving {
     ScoreDoc[] interleavedResultArray = new ScoreDoc[rerankedA.length];
     ArrayList<Set<Integer>> interleavingPicks = new ArrayList<>(2);
     Set<Integer> teamA = new HashSet<>();
-    Set<Integer> teamB = new HashSet<>();
+    Set<Integer> teamB = new HashSet<>(); // example change
     int topN = rerankedA.length;
     int indexA = 0, indexB = 0;
 

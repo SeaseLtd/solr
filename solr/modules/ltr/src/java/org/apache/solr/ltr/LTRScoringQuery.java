@@ -684,17 +684,39 @@ public class LTRScoringQuery extends Query implements Accountable {
           reset();
           freq = 0;
           if (targetDoc == activeDoc) {
-            for (final Scorer scorer : featureScorers) {
-              if (scorer.docID() == activeDoc) {
-                freq++;
-                Feature.FeatureWeight scFW = (Feature.FeatureWeight) scorer.getWeight();
-                final int featureId = scFW.getIndex();
-                featuresInfo[featureId].setValue(scorer.score());
-                featuresInfo[featureId].setUsed(true);
+
+            float[] featureVector =  request.getSearcher().cacheLookup(fvCacheName, fvCacheKey(getScoringQuery(), activeDoc));
+            if(featureVector != null){
+              for(int i=0; i<featureVector.length;i++){
+                featuresInfo[i].setValue(featureVector[i]);
+                featuresInfo[i].setUsed(true);
               }
+            } else {
+              featureVector = new float[featureScorers.size()];
+              for (int i=0; i<featureScorers.size();i++) {
+                Scorer scorer = featureScorers.get(i);
+                if (scorer.docID() == activeDoc) {
+                  freq++;
+                  Feature.FeatureWeight scFW = (Feature.FeatureWeight) scorer.getWeight();
+                  final int featureId = scFW.getIndex();
+                  float featureValue = scorer.score();
+                  featuresInfo[featureId].setValue(featureValue);
+                  featureVector[i] = featureValue;
+                  featuresInfo[featureId].setUsed(true);
+                }
+              }
+              request.getSearcher().cacheInsert(fvCacheName, fvCacheKey(getScoringQuery(), activeDoc), featureVector));
             }
           }
           return makeNormalizedFeaturesAndScore();
+        }
+
+        private LTRScoringQuery getScoringQuery(){
+          return LTRScoringQuery.this;
+        }
+
+        private int fvCacheKey(LTRScoringQuery scoringQuery, int docid) {
+          return scoringQuery.hashCode() + (31 * docid);
         }
 
         @Override

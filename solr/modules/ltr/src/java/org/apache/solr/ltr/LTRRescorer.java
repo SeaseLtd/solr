@@ -290,16 +290,16 @@ public class LTRRescorer extends Rescorer {
     final int n = ReaderUtil.subIndex(docid, leafContexts);
     final LeafReaderContext atomicContext = leafContexts.get(n);
     final int deBasedDoc = docid - atomicContext.docBase;
-    final LTRScoringQuery.ModelWeight.ModelScorer r = modelWeight.scorer(atomicContext);
-    if ((r == null) || (r.iterator().advance(deBasedDoc) != deBasedDoc)) {
+    final LTRScoringQuery.ModelWeight.ModelScorer rankingModel = modelWeight.scorer(atomicContext);
+    if ((rankingModel == null) || (rankingModel.iterator().advance(deBasedDoc) != deBasedDoc)) {
       return new LTRScoringQuery.FeatureInfo[0];
     } else {
       if (originalDocScore != null) {
         // If results have not been reranked, the score passed in is the original query's
         // score, which some features can use instead of recalculating it
-        r.getDocInfo().setOriginalDocScore(originalDocScore);
+        rankingModel.getDocInfo().setOriginalDocScore(originalDocScore);
       }
-      r.score();
+      rankingModel.score();
       return modelWeight.getFeaturesInfo();
     }
   }

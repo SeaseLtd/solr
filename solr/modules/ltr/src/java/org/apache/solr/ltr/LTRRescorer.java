@@ -180,36 +180,15 @@ public class LTRRescorer extends Rescorer {
         docBase = readerContext.docBase;
         scorer = modelWeight.scorer(readerContext);
       }
-      if (scoreSingleHit(topN, docBase, hitUpto, hit, docID, scorer, reranked)) {
-        logSingleHit(indexSearcher, modelWeight, hit.doc, scoringQuery);
-      }
+      scoreSingleHit(topN, docBase, hitUpto, hit, docID, scorer, reranked);
       hitUpto++;
     }
   }
 
   /**
-   * Call this method if the {@link #scoreSingleHit(int, int, int, ScoreDoc, int,
-   * org.apache.solr.ltr.LTRScoringQuery.ModelWeight.ModelScorer, ScoreDoc[])} method indicated that
-   * the document's feature info should be logged.
+   * Scores a single document.
    */
-  protected static void logSingleHit(
-      IndexSearcher indexSearcher,
-      LTRScoringQuery.ModelWeight modelWeight,
-      int docid,
-      LTRScoringQuery scoringQuery) {
-    final FeatureLogger featureLogger = scoringQuery.getFeatureLogger();
-    if (featureLogger != null && indexSearcher instanceof SolrIndexSearcher) {
-      //featureLogger.log(
-          //docid, scoringQuery, (SolrIndexSearcher) indexSearcher, modelWeight.getFeaturesInfo());
-    }
-  }
-
-  /**
-   * Scores a single document and returns true if the document's feature info should be logged via
-   * the {@link #logSingleHit(IndexSearcher, org.apache.solr.ltr.LTRScoringQuery.ModelWeight, int,
-   * LTRScoringQuery)} method. Feature info logging is only necessary for the topN documents.
-   */
-  protected static boolean scoreSingleHit(
+  protected static void scoreSingleHit(
       int topN,
       int docBase,
       int hitUpto,
@@ -230,15 +209,10 @@ public class LTRRescorer extends Rescorer {
     scorer.docID();
     scorer.iterator().advance(targetDoc);
 
-    boolean logHit = false;
-
     scorer.getDocInfo().setOriginalDocScore(hit.score);
     hit.score = scorer.score();
     if (hitUpto < topN) {
       reranked[hitUpto] = hit;
-      // if the heap is not full, maybe I want to log the features for this
-      // document
-      logHit = true;
     } else if (hitUpto == topN) {
       // collected topN document, I create the heap
       heapify(reranked, topN);
@@ -246,16 +220,14 @@ public class LTRRescorer extends Rescorer {
     if (hitUpto >= topN) {
       // once that heap is ready, if the score of this document is lower that
       // the minimum
-      // i don't want to log the feature. Otherwise I replace it with the
+      // I don't want to log the feature. Otherwise, I replace it with the
       // minimum and fix the
       // heap.
       if (hit.score > reranked[0].score) {
         reranked[0] = hit;
         heapAdjust(reranked, topN, 0);
-        logHit = true;
       }
     }
-    return logHit;
   }
 
   @Override

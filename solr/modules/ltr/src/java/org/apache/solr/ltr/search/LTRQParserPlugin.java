@@ -143,7 +143,7 @@ public class LTRQParserPlugin extends QParserPlugin
     }
 
     @Override
-    public Query parse() throws SyntaxError {
+    public Query parse() {
       if (threadManager != null) {
         threadManager.setExecutor(
             req.getCoreContainer().getUpdateShardHandler().getUpdateExecutor());

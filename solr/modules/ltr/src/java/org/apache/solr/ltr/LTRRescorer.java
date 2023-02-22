@@ -218,11 +218,8 @@ public class LTRRescorer extends Rescorer {
       heapify(reranked, topN);
     }
     if (hitUpto >= topN) {
-      // once that heap is ready, if the score of this document is lower that
-      // the minimum
-      // I don't want to log the feature. Otherwise, I replace it with the
-      // minimum and fix the
-      // heap.
+      // once that heap is ready, if the score of this document is greater that
+      // the minimum, I replace the minimum with it and fix the heap.
       if (hit.score > reranked[0].score) {
         reranked[0] = hit;
         heapAdjust(reranked, topN, 0);

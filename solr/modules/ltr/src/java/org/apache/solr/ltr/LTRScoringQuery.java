@@ -46,6 +46,7 @@ import org.apache.lucene.util.RamUsageEstimator;
 import org.apache.solr.ltr.feature.Feature;
 import org.apache.solr.ltr.model.LTRScoringModel;
 import org.apache.solr.request.SolrQueryRequest;
+import org.apache.solr.search.SolrIndexSearcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -229,7 +230,7 @@ public class LTRScoringQuery extends Query implements Accountable {
         extractedFeatureWeights[i++] = fw;
       }
       for (final Feature f : modelFeatures) {
-        // we can lookup by featureid because all features will be
+        // we can look up by featureid because all features will be
         // extracted when this.extractAllFeatures is set
         modelFeaturesWeights[j++] = extractedFeatureWeights[f.getIndex()];
       }
@@ -563,6 +564,14 @@ public class LTRScoringQuery extends Query implements Accountable {
         return featureTraversalScorer.iterator();
       }
 
+      private LTRScoringQuery getScoringQuery(){
+        return LTRScoringQuery.this;
+      }
+
+      private int fvCacheKey(LTRScoringQuery scoringQuery, int docid) {
+        return scoringQuery.hashCode() + (31 * docid);
+      }
+
       private class SparseModelScorer extends Scorer {
         private final DisiPriorityQueue subScorers;
         private final ScoringQuerySparseIterator itr;
@@ -600,12 +609,26 @@ public class LTRScoringQuery extends Query implements Accountable {
           // features.
           reset();
           if (activeDoc == targetDoc) {
-            for (DisiWrapper w = topList; w != null; w = w.next) {
-              final Scorer subScorer = w.scorer;
-              Feature.FeatureWeight scFW = (Feature.FeatureWeight) subScorer.getWeight();
-              final int featureId = scFW.getIndex();
-              featuresInfo[featureId].setValue(subScorer.score());
-              featuresInfo[featureId].setUsed(true);
+            float[] featureVector =  (float[]) request.getSearcher().cacheLookup(fl.getFvCacheName(), fvCacheKey(getScoringQuery(), activeDoc));
+            if(featureVector != null){
+              for (int i = 0; i < featureVector.length; i++) {
+                featuresInfo[i].setValue(featureVector[i]);
+                featuresInfo[i].setUsed(true);
+              }
+            } else {
+              featureVector = new float[subScorers.size()];
+              int i = 0;
+              for (DisiWrapper w = topList; w != null; w = w.next) {
+                final Scorer subScorer = w.scorer;
+                Feature.FeatureWeight scFW = (Feature.FeatureWeight) subScorer.getWeight();
+                final int featureId = scFW.getIndex();
+                float featureValue = subScorer.score();
+                featuresInfo[featureId].setValue(featureValue);
+                featureVector[i] = featureValue;
+                i++;
+                featuresInfo[featureId].setUsed(true);
+              }
+              request.getSearcher().cacheInsert(fl.getFvCacheName(), fvCacheKey(getScoringQuery(), activeDoc), featureVector);
             }
           }
           return makeNormalizedFeaturesAndScore();
@@ -684,16 +707,15 @@ public class LTRScoringQuery extends Query implements Accountable {
           reset();
           freq = 0;
           if (targetDoc == activeDoc) {
-
-            float[] featureVector =  request.getSearcher().cacheLookup(fvCacheName, fvCacheKey(getScoringQuery(), activeDoc));
+            float[] featureVector =  (float[]) request.getSearcher().cacheLookup(fl.getFvCacheName(), fvCacheKey(getScoringQuery(), activeDoc));
             if(featureVector != null){
-              for(int i=0; i<featureVector.length;i++){
+              for (int i = 0; i < featureVector.length; i++) {
                 featuresInfo[i].setValue(featureVector[i]);
                 featuresInfo[i].setUsed(true);
               }
             } else {
               featureVector = new float[featureScorers.size()];
-              for (int i=0; i<featureScorers.size();i++) {
+              for (int i = 0; i < featureScorers.size(); i++) {
                 Scorer scorer = featureScorers.get(i);
                 if (scorer.docID() == activeDoc) {
                   freq++;
@@ -705,18 +727,10 @@ public class LTRScoringQuery extends Query implements Accountable {
                   featuresInfo[featureId].setUsed(true);
                 }
               }
-              request.getSearcher().cacheInsert(fvCacheName, fvCacheKey(getScoringQuery(), activeDoc), featureVector));
+              request.getSearcher().cacheInsert(fl.getFvCacheName(), fvCacheKey(getScoringQuery(), activeDoc), featureVector);
             }
           }
           return makeNormalizedFeaturesAndScore();
-        }
-
-        private LTRScoringQuery getScoringQuery(){
-          return LTRScoringQuery.this;
-        }
-
-        private int fvCacheKey(LTRScoringQuery scoringQuery, int docid) {
-          return scoringQuery.hashCode() + (31 * docid);
         }
 
         @Override

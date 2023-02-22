@@ -199,8 +199,8 @@ public class LTRRescorer extends Rescorer {
       LTRScoringQuery scoringQuery) {
     final FeatureLogger featureLogger = scoringQuery.getFeatureLogger();
     if (featureLogger != null && indexSearcher instanceof SolrIndexSearcher) {
-      featureLogger.log(
-          docid, scoringQuery, (SolrIndexSearcher) indexSearcher, modelWeight.getFeaturesInfo());
+      //featureLogger.log(
+          //docid, scoringQuery, (SolrIndexSearcher) indexSearcher, modelWeight.getFeaturesInfo());
     }
   }
 

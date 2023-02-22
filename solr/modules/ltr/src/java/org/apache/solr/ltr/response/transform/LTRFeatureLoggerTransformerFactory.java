@@ -370,15 +370,13 @@ public class LTRFeatureLoggerTransformerFactory extends TransformerFactory {
         }
       }
       if (!(rerankingQuery instanceof OriginalRankingLTRScoringQuery) || hasExplicitFeatureStore) {
-        LTRScoringQuery.FeatureInfo[] featuresInfo = LTRRescorer.extractFeaturesInfo(
-                rerankingModelWeight,
-                docid,
-                (docsWereNotReranked ? score : null),
-                leafContexts);
-
-          String featureVector =
-              featureLogger.makeFeatureVector(
-                      featuresInfo);
+        String featureVector =
+                featureLogger.makeFeatureVector(
+                        LTRRescorer.extractFeaturesInfo(
+                                rerankingModelWeight,
+                                docid,
+                                (docsWereNotReranked ? score : null),
+                                leafContexts));
         doc.addField(name, featureVector);
       }
     }

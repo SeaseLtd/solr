@@ -16,8 +16,6 @@
  */
 package org.apache.solr.ltr;
 
-import org.apache.solr.search.SolrIndexSearcher;
-
 /**
  * FeatureLogger can be registered in a model and provide a strategy for logging the feature values.
  */
@@ -38,7 +36,9 @@ public abstract class FeatureLogger {
     this.featureFormat = f;
   }
 
+  public String getFvCacheName() {
+    return fvCacheName;
+  }
 
   public abstract String makeFeatureVector(LTRScoringQuery.FeatureInfo[] featuresInfo);
-
 }

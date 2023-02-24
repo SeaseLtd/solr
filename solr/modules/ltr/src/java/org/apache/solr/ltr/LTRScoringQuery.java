@@ -408,10 +408,10 @@ public class LTRScoringQuery extends Query implements Accountable {
       this.modelFeatureWeights = modelFeatureWeights;
       this.modelFeatureValuesNormalized = new float[modelFeatureWeights.length];
       this.featuresInfo = new FeatureInfo[allFeaturesSize];
-      setFeaturesInfo();
+      setDefaultFeaturesInfo();
     }
 
-    private void setFeaturesInfo() {
+    private void setDefaultFeaturesInfo() {
       for (int i = 0; i < extractedFeatureWeights.length; ++i) {
         String featName = extractedFeatureWeights[i].getName();
         int featId = extractedFeatureWeights[i].getIndex();
@@ -599,17 +599,11 @@ public class LTRScoringQuery extends Query implements Accountable {
           return itr.docID();
         }
 
-        @Override
-        public float score() throws IOException {
+        private void setSparseFeaturesInfo() throws IOException {
           final DisiWrapper topList = subScorers.topList();
-          // If target doc we wanted to advance to match the actual doc
-          // the underlying features advanced to, perform the feature
-          // calculations,
-          // otherwise just continue with the model's scoring process with empty
-          // features.
-          reset();
           if (activeDoc == targetDoc) {
-            float[] featureVector =  (float[]) request.getSearcher().cacheLookup(fl.getFvCacheName(), fvCacheKey(getScoringQuery(), activeDoc));
+            SolrIndexSearcher searcher = request.getSearcher();
+            float[] featureVector =  (float[]) searcher.cacheLookup(searcher.getFeatureVectorCache().name(), fvCacheKey(getScoringQuery(), activeDoc));
             if(featureVector != null){
               for (int i = 0; i < featureVector.length; i++) {
                 featuresInfo[i].setValue(featureVector[i]);
@@ -628,9 +622,20 @@ public class LTRScoringQuery extends Query implements Accountable {
                 i++;
                 featuresInfo[featureId].setUsed(true);
               }
-              request.getSearcher().cacheInsert(fl.getFvCacheName(), fvCacheKey(getScoringQuery(), activeDoc), featureVector);
+              searcher.cacheInsert(searcher.getFeatureVectorCache().name(), fvCacheKey(getScoringQuery(), activeDoc), featureVector);
             }
           }
+        }
+
+        @Override
+        public float score() throws IOException {
+          // If target doc we wanted to advance to match the actual doc
+          // the underlying features advanced to, perform the feature
+          // calculations,
+          // otherwise just continue with the model's scoring process with empty
+          // features.
+          reset();
+          setSparseFeaturesInfo();
           return makeNormalizedFeaturesAndScore();
         }
 
@@ -702,12 +707,11 @@ public class LTRScoringQuery extends Query implements Accountable {
           return targetDoc;
         }
 
-        @Override
-        public float score() throws IOException {
-          reset();
+        private void setDenseFeaturesInfo() throws IOException {
           freq = 0;
           if (targetDoc == activeDoc) {
-            float[] featureVector =  (float[]) request.getSearcher().cacheLookup(fl.getFvCacheName(), fvCacheKey(getScoringQuery(), activeDoc));
+            SolrIndexSearcher searcher =  request.getSearcher();
+            float[] featureVector =  (float[]) searcher.cacheLookup(searcher.getFeatureVectorCache().name(), fvCacheKey(getScoringQuery(), activeDoc));
             if(featureVector != null){
               for (int i = 0; i < featureVector.length; i++) {
                 featuresInfo[i].setValue(featureVector[i]);
@@ -727,9 +731,15 @@ public class LTRScoringQuery extends Query implements Accountable {
                   featuresInfo[featureId].setUsed(true);
                 }
               }
-              request.getSearcher().cacheInsert(fl.getFvCacheName(), fvCacheKey(getScoringQuery(), activeDoc), featureVector);
+              searcher.cacheInsert(searcher.getFeatureVectorCache().name(), fvCacheKey(getScoringQuery(), activeDoc), featureVector);
             }
           }
+        }
+
+        @Override
+        public float score() throws IOException {
+          reset();
+          setDenseFeaturesInfo();
           return makeNormalizedFeaturesAndScore();
         }
 

@@ -152,6 +152,7 @@ public class SolrIndexSearcher extends IndexSearcher implements Closeable, SolrI
   private final SolrCache<Query, DocSet> filterCache;
   private final SolrCache<QueryResultKey, DocList> queryResultCache;
   private final SolrCache<String, UnInvertedField> fieldValueCache;
+  private final SolrCache<Integer, float[]> featureVectorCache;
   private final LongAdder fullSortCount = new LongAdder();
   private final LongAdder skipSortCount = new LongAdder();
   private final LongAdder liveDocsNaiveCacheHitCount = new LongAdder();
@@ -385,6 +386,11 @@ public class SolrIndexSearcher extends IndexSearcher implements Closeable, SolrI
               ? null
               : solrConfig.queryResultCacheConfig.newInstance();
       if (queryResultCache != null) clist.add(queryResultCache);
+      featureVectorCache =
+              solrConfig.featureVectorCacheConfig == null
+                      ? null
+                      : solrConfig.featureVectorCacheConfig.newInstance();
+      if (featureVectorCache != null) clist.add(featureVectorCache);
       SolrCache<Integer, Document> documentCache = docFetcher.getDocumentCache();
       if (documentCache != null) clist.add(documentCache);
 
@@ -406,6 +412,7 @@ public class SolrIndexSearcher extends IndexSearcher implements Closeable, SolrI
       this.filterCache = null;
       this.queryResultCache = null;
       this.fieldValueCache = null;
+      this.featureVectorCache = null;
       this.cacheMap = NO_GENERIC_CACHES;
       this.cacheList = NO_CACHES;
     }
@@ -622,6 +629,10 @@ public class SolrIndexSearcher extends IndexSearcher implements Closeable, SolrI
     return filterCache;
   }
 
+  public SolrCache<Integer, float[]> getFeatureVectorCache() {
+    return featureVectorCache;
+  }
+
   //
   // Set default regenerators on filter and query caches if they don't have any
   //
@@ -662,6 +673,12 @@ public class SolrIndexSearcher extends IndexSearcher implements Closeable, SolrI
               return true;
             }
           });
+    }
+
+    if (solrConfig.featureVectorCacheConfig != null
+            && solrConfig.featureVectorCacheConfig.getRegenerator() == null) {
+      solrConfig.featureVectorCacheConfig.setRegenerator(
+              new NoOpRegenerator());
     }
 
     if (solrConfig.queryResultCacheConfig != null

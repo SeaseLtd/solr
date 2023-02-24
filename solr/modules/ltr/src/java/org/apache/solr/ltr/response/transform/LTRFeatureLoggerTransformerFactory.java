@@ -371,7 +371,7 @@ public class LTRFeatureLoggerTransformerFactory extends TransformerFactory {
       }
       if (!(rerankingQuery instanceof OriginalRankingLTRScoringQuery) || hasExplicitFeatureStore) {
         String featureVector =
-                featureLogger.makeFeatureVector(
+                featureLogger.toStringFeatureVector(
                         LTRRescorer.extractFeaturesInfo(
                                 rerankingModelWeight,
                                 docid,

@@ -36,7 +36,7 @@ public class CSVFeatureLogger extends FeatureLogger {
   }
 
   @Override
-  public String makeFeatureVector(LTRScoringQuery.FeatureInfo[] featuresInfo) {
+  public String toStringFeatureVector(LTRScoringQuery.FeatureInfo[] featuresInfo) {
     // Allocate the buffer to a size based on the number of features instead of the
     // default 16.  You need space for the name, value, and two separators per feature,
     // but not all the features are expected to fire, so this is just a naive estimate.

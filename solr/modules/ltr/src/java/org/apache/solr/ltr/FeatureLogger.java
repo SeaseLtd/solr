@@ -21,9 +21,6 @@ package org.apache.solr.ltr;
  */
 public abstract class FeatureLogger {
 
-  /** the name of the cache using for storing the feature value */
-  private final String fvCacheName;
-
   public enum FeatureFormat {
     DENSE,
     SPARSE
@@ -32,13 +29,8 @@ public abstract class FeatureLogger {
   protected final FeatureFormat featureFormat;
 
   protected FeatureLogger(String fvCacheName, FeatureFormat f) {
-    this.fvCacheName = fvCacheName;
     this.featureFormat = f;
   }
 
-  public String getFvCacheName() {
-    return fvCacheName;
-  }
-
-  public abstract String makeFeatureVector(LTRScoringQuery.FeatureInfo[] featuresInfo);
+  public abstract String toStringFeatureVector(LTRScoringQuery.FeatureInfo[] featuresInfo);
 }

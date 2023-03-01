@@ -634,7 +634,7 @@ public class LTRScoringQuery extends Query implements Accountable {
           // calculations,
           // otherwise just continue with the model's scoring process with empty
           // features.
-          
+
           // to remove
           final DisiWrapper topList = subScorers.topList();
 

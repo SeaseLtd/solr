@@ -75,10 +75,12 @@ public class LTRRescorer extends Rescorer {
   @Override
   public TopDocs rescore(IndexSearcher searcher, TopDocs firstPassTopDocs, int topN)
       throws IOException {
+    // topN == firstPassTopDocs.scoreDocs.length -> topN not necessary, just one check
     if ((topN == 0) || (firstPassTopDocs.scoreDocs.length == 0)) {
       return firstPassTopDocs;
     }
     final ScoreDoc[] firstPassResults = getFirstPassDocsRanked(firstPassTopDocs);
+    // not necessary
     topN = Math.toIntExact(Math.min(topN, firstPassTopDocs.totalHits.value));
 
     final ScoreDoc[] reranked = rerank(searcher, topN, firstPassResults);
@@ -88,6 +90,7 @@ public class LTRRescorer extends Rescorer {
 
   private ScoreDoc[] rerank(IndexSearcher searcher, int topN, ScoreDoc[] firstPassResults)
       throws IOException {
+    // firstPassResults.length can be used instead of topN
     final ScoreDoc[] reranked = new ScoreDoc[topN];
     final List<LeafReaderContext> leaves = searcher.getIndexReader().leaves();
     final LTRScoringQuery.ModelWeight modelWeight =

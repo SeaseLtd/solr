@@ -555,7 +555,7 @@ public class LTRScoringQuery extends Query implements Accountable {
       }
 
       @Override
-      public float getMaxScore(int upTo) throws IOException {
+      public float getMaxScore(int upTo) {
         return Float.POSITIVE_INFINITY;
       }
 
@@ -602,6 +602,8 @@ public class LTRScoringQuery extends Query implements Accountable {
         private void setSparseFeaturesInfo() throws IOException {
           final DisiWrapper topList = subScorers.topList();
           if (activeDoc == targetDoc) {
+            // HOW TO GET SEARCHER? REQUEST IS NULL
+            // rerankingQuery.setRequest(req); is not called in LTRQParserPlugin -> 216 when TestLTRScoringQuery
             SolrIndexSearcher searcher = request.getSearcher();
             float[] featureVector =  (float[]) searcher.cacheLookup(searcher.getFeatureVectorCache().name(), fvCacheKey(getScoringQuery(), activeDoc));
             if(featureVector != null){
@@ -634,24 +636,8 @@ public class LTRScoringQuery extends Query implements Accountable {
           // calculations,
           // otherwise just continue with the model's scoring process with empty
           // features.
-
-          // to remove
-          final DisiWrapper topList = subScorers.topList();
-
           reset();
-          //setSparseFeaturesInfo();
-
-          // start remove
-          if (activeDoc == targetDoc) {
-            for (DisiWrapper w = topList; w != null; w = w.next) {
-              final Scorer subScorer = w.scorer;
-              Feature.FeatureWeight scFW = (Feature.FeatureWeight) subScorer.getWeight();
-              final int featureId = scFW.getIndex();
-              featuresInfo[featureId].setValue(subScorer.score());
-              featuresInfo[featureId].setUsed(true);
-            }
-          }
-          // end remove
+          setSparseFeaturesInfo();
           return makeNormalizedFeaturesAndScore();
         }
 
@@ -755,22 +741,7 @@ public class LTRScoringQuery extends Query implements Accountable {
         @Override
         public float score() throws IOException {
           reset();
-          //setDenseFeaturesInfo();
-          // start remove
-          freq = 0;
-          if (targetDoc == activeDoc) {
-            for (final Scorer scorer : featureScorers) {
-              if (scorer.docID() == activeDoc) {
-                freq++;
-                Feature.FeatureWeight scFW = (Feature.FeatureWeight) scorer.getWeight();
-                final int featureId = scFW.getIndex();
-                featuresInfo[featureId].setValue(scorer.score());
-                featuresInfo[featureId].setUsed(true);
-              }
-            }
-          }
-
-          // end remove
+          setDenseFeaturesInfo();
           return makeNormalizedFeaturesAndScore();
         }
 

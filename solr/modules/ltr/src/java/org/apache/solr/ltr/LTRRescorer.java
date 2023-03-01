@@ -31,7 +31,6 @@ import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.TotalHits;
 import org.apache.lucene.search.Weight;
 import org.apache.solr.ltr.interleaving.OriginalRankingLTRScoringQuery;
-import org.apache.solr.search.SolrIndexSearcher;
 
 /**
  * Implements the rescoring logic. The top documents returned by solr with their original scores,
@@ -66,47 +65,6 @@ public class LTRRescorer extends Rescorer {
         }
       };
 
-  protected static void heapAdjust(ScoreDoc[] hits, int size, int root) {
-    final ScoreDoc doc = hits[root];
-    final float score = doc.score;
-    int i = root;
-    while (i <= ((size >> 1) - 1)) {
-      final int lchild = (i << 1) + 1;
-      final ScoreDoc ldoc = hits[lchild];
-      final float lscore = ldoc.score;
-      float rscore = Float.MAX_VALUE;
-      final int rchild = (i << 1) + 2;
-      ScoreDoc rdoc = null;
-      if (rchild < size) {
-        rdoc = hits[rchild];
-        rscore = rdoc.score;
-      }
-      if (lscore < score) {
-        if (rscore < lscore) {
-          hits[i] = rdoc;
-          hits[rchild] = doc;
-          i = rchild;
-        } else {
-          hits[i] = ldoc;
-          hits[lchild] = doc;
-          i = lchild;
-        }
-      } else if (rscore < score) {
-        hits[i] = rdoc;
-        hits[rchild] = doc;
-        i = rchild;
-      } else {
-        return;
-      }
-    }
-  }
-
-  protected static void heapify(ScoreDoc[] hits, int size) {
-    for (int i = (size >> 1) - 1; i >= 0; i--) {
-      heapAdjust(hits, size, i);
-    }
-  }
-
   /**
    * rescores the documents:
    *
@@ -136,7 +94,7 @@ public class LTRRescorer extends Rescorer {
         (LTRScoringQuery.ModelWeight)
             searcher.createWeight(searcher.rewrite(scoringQuery), ScoreMode.COMPLETE, 1);
 
-    scoreFeatures(searcher, topN, modelWeight, firstPassResults, leaves, reranked);
+    scoreFeatures(modelWeight, firstPassResults, leaves, reranked);
     // Must sort all documents that we reranked, and then select the top
     Arrays.sort(reranked, scoreComparator);
     return reranked;
@@ -151,8 +109,6 @@ public class LTRRescorer extends Rescorer {
   }
 
   public void scoreFeatures(
-      IndexSearcher indexSearcher,
-      int topN,
       LTRScoringQuery.ModelWeight modelWeight,
       ScoreDoc[] hits,
       List<LeafReaderContext> leaves,
@@ -180,7 +136,7 @@ public class LTRRescorer extends Rescorer {
         docBase = readerContext.docBase;
         scorer = modelWeight.scorer(readerContext);
       }
-      scoreSingleHit(topN, docBase, hitUpto, hit, docID, scorer, reranked);
+      scoreSingleHit(docBase, hitUpto, hit, docID, scorer, reranked);
       hitUpto++;
     }
   }
@@ -189,7 +145,6 @@ public class LTRRescorer extends Rescorer {
    * Scores a single document.
    */
   protected static void scoreSingleHit(
-      int topN,
       int docBase,
       int hitUpto,
       ScoreDoc hit,
@@ -211,20 +166,7 @@ public class LTRRescorer extends Rescorer {
 
     scorer.getDocInfo().setOriginalDocScore(hit.score);
     hit.score = scorer.score();
-    if (hitUpto < topN) {
-      reranked[hitUpto] = hit;
-    } else if (hitUpto == topN) {
-      // collected topN document, I create the heap
-      heapify(reranked, topN);
-    }
-    if (hitUpto >= topN) {
-      // once that heap is ready, if the score of this document is greater that
-      // the minimum, I replace the minimum with it and fix the heap.
-      if (hit.score > reranked[0].score) {
-        reranked[0] = hit;
-        heapAdjust(reranked, topN, 0);
-      }
-    }
+    reranked[hitUpto] = hit;
   }
 
   @Override

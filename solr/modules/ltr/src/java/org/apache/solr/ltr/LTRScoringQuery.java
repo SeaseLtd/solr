@@ -634,8 +634,24 @@ public class LTRScoringQuery extends Query implements Accountable {
           // calculations,
           // otherwise just continue with the model's scoring process with empty
           // features.
+          
+          // to remove
+          final DisiWrapper topList = subScorers.topList();
+
           reset();
-          setSparseFeaturesInfo();
+          //setSparseFeaturesInfo();
+
+          // start remove
+          if (activeDoc == targetDoc) {
+            for (DisiWrapper w = topList; w != null; w = w.next) {
+              final Scorer subScorer = w.scorer;
+              Feature.FeatureWeight scFW = (Feature.FeatureWeight) subScorer.getWeight();
+              final int featureId = scFW.getIndex();
+              featuresInfo[featureId].setValue(subScorer.score());
+              featuresInfo[featureId].setUsed(true);
+            }
+          }
+          // end remove
           return makeNormalizedFeaturesAndScore();
         }
 
@@ -739,7 +755,22 @@ public class LTRScoringQuery extends Query implements Accountable {
         @Override
         public float score() throws IOException {
           reset();
-          setDenseFeaturesInfo();
+          //setDenseFeaturesInfo();
+          // start remove
+          freq = 0;
+          if (targetDoc == activeDoc) {
+            for (final Scorer scorer : featureScorers) {
+              if (scorer.docID() == activeDoc) {
+                freq++;
+                Feature.FeatureWeight scFW = (Feature.FeatureWeight) scorer.getWeight();
+                final int featureId = scFW.getIndex();
+                featuresInfo[featureId].setValue(scorer.score());
+                featuresInfo[featureId].setUsed(true);
+              }
+            }
+          }
+
+          // end remove
           return makeNormalizedFeaturesAndScore();
         }
 

@@ -602,10 +602,10 @@ public class LTRScoringQuery extends Query implements Accountable {
         private void setSparseFeaturesInfo() throws IOException {
           final DisiWrapper topList = subScorers.topList();
           if (activeDoc == targetDoc) {
-            // HOW TO GET SEARCHER? REQUEST IS NULL
-            // rerankingQuery.setRequest(req); is not called in LTRQParserPlugin -> 216 when TestLTRScoringQuery
+            // In TestLTRScoringQuery, LTRQParserPlugin -> 216 rerankingQuery.setRequest(req); is not called
+            // then req is null and we have an error
             SolrIndexSearcher searcher = request.getSearcher();
-            float[] featureVector =  (float[]) searcher.cacheLookup(searcher.getFeatureVectorCache().name(), fvCacheKey(getScoringQuery(), activeDoc));
+            float[] featureVector =  (float[]) searcher.featureVectorCacheLookup(fvCacheKey(getScoringQuery(), activeDoc));
             if(featureVector != null){
               for (int i = 0; i < featureVector.length; i++) {
                 featuresInfo[i].setValue(featureVector[i]);
@@ -624,7 +624,7 @@ public class LTRScoringQuery extends Query implements Accountable {
                 i++;
                 featuresInfo[featureId].setUsed(true);
               }
-              searcher.cacheInsert(searcher.getFeatureVectorCache().name(), fvCacheKey(getScoringQuery(), activeDoc), featureVector);
+              searcher.featureVectorCacheInsert(fvCacheKey(getScoringQuery(), activeDoc), featureVector);
             }
           }
         }
@@ -713,7 +713,7 @@ public class LTRScoringQuery extends Query implements Accountable {
           freq = 0;
           if (targetDoc == activeDoc) {
             SolrIndexSearcher searcher =  request.getSearcher();
-            float[] featureVector =  (float[]) searcher.cacheLookup(searcher.getFeatureVectorCache().name(), fvCacheKey(getScoringQuery(), activeDoc));
+            float[] featureVector =  (float[]) searcher.featureVectorCacheLookup(fvCacheKey(getScoringQuery(), activeDoc));
             if(featureVector != null){
               for (int i = 0; i < featureVector.length; i++) {
                 featuresInfo[i].setValue(featureVector[i]);
@@ -733,7 +733,7 @@ public class LTRScoringQuery extends Query implements Accountable {
                   featuresInfo[featureId].setUsed(true);
                 }
               }
-              searcher.cacheInsert(searcher.getFeatureVectorCache().name(), fvCacheKey(getScoringQuery(), activeDoc), featureVector);
+              searcher.featureVectorCacheInsert(fvCacheKey(getScoringQuery(), activeDoc), featureVector);
             }
           }
         }

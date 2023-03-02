@@ -601,11 +601,17 @@ public class LTRScoringQuery extends Query implements Accountable {
 
         private void setSparseFeaturesInfo() throws IOException {
           final DisiWrapper topList = subScorers.topList();
+          // If target doc we wanted to advance to match the actual doc
+          // the underlying features advanced to, perform the feature
+          // calculations,
+          // otherwise just continue with the model's scoring process with empty
+          // features.
+          reset();
           if (activeDoc == targetDoc) {
             // In TestLTRScoringQuery, LTRQParserPlugin -> 216 rerankingQuery.setRequest(req); is not called
             // then req is null and we have an error
             SolrIndexSearcher searcher = request.getSearcher();
-            float[] featureVector =  (float[]) searcher.featureVectorCacheLookup(fvCacheKey(getScoringQuery(), activeDoc));
+            float[] featureVector =  (float[]) searcher.featureVectorCacheLookup(fvCacheKey(getScoringQuery(), docID()));
             if(featureVector != null){
               for (int i = 0; i < featureVector.length; i++) {
                 featuresInfo[i].setValue(featureVector[i]);
@@ -613,30 +619,22 @@ public class LTRScoringQuery extends Query implements Accountable {
               }
             } else {
               featureVector = new float[subScorers.size()];
-              int i = 0;
               for (DisiWrapper w = topList; w != null; w = w.next) {
                 final Scorer subScorer = w.scorer;
                 Feature.FeatureWeight scFW = (Feature.FeatureWeight) subScorer.getWeight();
                 final int featureId = scFW.getIndex();
                 float featureValue = subScorer.score();
                 featuresInfo[featureId].setValue(featureValue);
-                featureVector[i] = featureValue;
-                i++;
                 featuresInfo[featureId].setUsed(true);
+                featureVector[featureId] = featureValue;
               }
-              searcher.featureVectorCacheInsert(fvCacheKey(getScoringQuery(), activeDoc), featureVector);
+              searcher.featureVectorCacheInsert(fvCacheKey(getScoringQuery(), docID()), featureVector);
             }
           }
         }
 
         @Override
         public float score() throws IOException {
-          // If target doc we wanted to advance to match the actual doc
-          // the underlying features advanced to, perform the feature
-          // calculations,
-          // otherwise just continue with the model's scoring process with empty
-          // features.
-          reset();
           setSparseFeaturesInfo();
           return makeNormalizedFeaturesAndScore();
         }
@@ -713,7 +711,7 @@ public class LTRScoringQuery extends Query implements Accountable {
           freq = 0;
           if (targetDoc == activeDoc) {
             SolrIndexSearcher searcher =  request.getSearcher();
-            float[] featureVector =  (float[]) searcher.featureVectorCacheLookup(fvCacheKey(getScoringQuery(), activeDoc));
+            float[] featureVector =  (float[]) searcher.featureVectorCacheLookup(fvCacheKey(getScoringQuery(), docID()));
             if(featureVector != null){
               for (int i = 0; i < featureVector.length; i++) {
                 featuresInfo[i].setValue(featureVector[i]);
@@ -733,7 +731,7 @@ public class LTRScoringQuery extends Query implements Accountable {
                   featuresInfo[featureId].setUsed(true);
                 }
               }
-              searcher.featureVectorCacheInsert(fvCacheKey(getScoringQuery(), activeDoc), featureVector);
+              searcher.featureVectorCacheInsert(fvCacheKey(getScoringQuery(), docID()), featureVector);
             }
           }
         }

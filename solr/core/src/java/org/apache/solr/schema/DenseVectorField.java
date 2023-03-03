@@ -33,6 +33,7 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.SortField;
 import org.apache.lucene.util.hnsw.HnswGraph;
 import org.apache.solr.common.SolrException;
+import org.apache.solr.search.DenseVectorFieldSource;
 import org.apache.solr.search.QParser;
 import org.apache.solr.uninverting.UninvertingReader;
 
@@ -260,10 +261,8 @@ public class DenseVectorField extends FloatPointField {
   }
 
   @Override
-  public ValueSource getValueSource(SchemaField field, QParser parser) {
-    throw new SolrException(
-        SolrException.ErrorCode.BAD_REQUEST,
-        "Function queries are not supported for Dense Vector fields.");
+  public ValueSource getValueSource(SchemaField field, QParser qparser) {
+    return new DenseVectorFieldSource(field.getName(), dimension);
   }
 
   public Query getKnnVectorQuery(

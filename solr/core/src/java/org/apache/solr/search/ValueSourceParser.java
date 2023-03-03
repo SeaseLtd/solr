@@ -24,6 +24,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queries.function.FunctionScoreQuery;
@@ -340,7 +341,17 @@ public abstract class ValueSourceParser implements NamedListInitializedPlugin {
           }
         });
     alias("sum", "add");
-
+      addParser(
+              "vectorSimilarity",
+              new ValueSourceParser() {
+                  @Override
+                  public ValueSource parse(FunctionQParser fp) throws SyntaxError {
+                      String functionName = fp.parseArg();
+                      ValueSource v1 = fp.parseValueSource();
+                      ValueSource v2 = fp.parseValueSource();
+                      return new DenseVectorSimilarityFunction(functionName, v1, v2);
+                  }
+              });
     addParser(
         "product",
         new ValueSourceParser() {

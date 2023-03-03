@@ -91,6 +91,7 @@ public class FunctionQParser extends QParser {
     for (; ; ) {
       // @SuppressWarnings("ErroneousBitwiseExpression") is needed since
       // FLAG_DEFAULT & ~FLAG_CONSUME_DELIMITER == 0
+
       ValueSource valsource = parseValueSource(FLAG_DEFAULT & ~FLAG_CONSUME_DELIMITER);
       sp.eatws();
       if (!parseMultipleSources) {
@@ -363,6 +364,8 @@ public class FunctionQParser extends QParser {
       }
     } else if (ch == '"' || ch == '\'') {
       valueSource = new LiteralValueSource(sp.getQuotedString());
+    } else if (ch == '[' ) {
+      valueSource = new DenseVectorConstValueSource(sp.getVector());
     } else if (ch == '$') {
       sp.pos++;
       String param = sp.getId();
@@ -390,37 +393,6 @@ public class FunctionQParser extends QParser {
           valueSource = new QueryValueSource(subQuery, 0.0f);
         }
       }
-
-      /*
-      // dereference *simple* argument (i.e., can't currently be a function)
-       // In the future we could support full function dereferencing via a stack of ValueSource (or StringParser) objects
-      ch = val.length()==0 ? '\0' : val.charAt(0);
-
-      if (ch>='0' && ch<='9'  || ch=='.' || ch=='+' || ch=='-') {
-        StrParser sp = new StrParser(val);
-        Number num = sp.getNumber();
-        if (num instanceof Long) {
-          valueSource = new LongConstValueSource(num.longValue());
-        } else if (num instanceof Double) {
-          valueSource = new DoubleConstValueSource(num.doubleValue());
-        } else {
-          // shouldn't happen
-          valueSource = new ConstValueSource(num.floatValue());
-        }
-      } else if (ch == '"' || ch == '\'') {
-        StrParser sp = new StrParser(val);
-        val = sp.getQuotedString();
-        valueSource = new LiteralValueSource(val);
-      } else {
-        if (val.length()==0) {
-          valueSource = new LiteralValueSource(val);
-        } else {
-          String id = val;
-          SchemaField f = req.getSchema().getField(id);
-          valueSource = f.getType().getValueSource(f, this);
-        }
-      }
-      */
 
     } else {
 

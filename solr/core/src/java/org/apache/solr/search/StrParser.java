@@ -16,6 +16,8 @@
  */
 package org.apache.solr.search;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -319,6 +321,31 @@ public class StrParser {
 
     return sb.toString();
   }
+
+  public List<Number> getVector() throws SyntaxError {
+    ArrayList<Number> values = new ArrayList<>();
+
+    pos += 1;
+    while (pos < end){
+      char ch = val.charAt(pos);
+      if ((ch >= '0' && ch <= '9') || ch == '.' || ch == '+' || ch == '-') {
+        Number n = getNumber();
+        values.add(n);
+      } else if (ch == ','){
+        pos++;
+      } else if (ch == ']') {
+        break;
+      } else {
+        throw new SyntaxError(String.format("Unexpected {} at position {}", ch, pos));
+      }
+    }
+    if (pos >= end) {
+      throw new SyntaxError("Missing end paranthesis for vector");
+    }
+    pos++;
+    return values;
+  }
+
 
   // next non-whitespace char
   public char peek() {

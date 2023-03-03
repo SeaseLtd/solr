@@ -153,10 +153,7 @@ public class LTRFeatureLoggerTransformerFactory extends TransformerFactory {
     } else {
       format = this.defaultFormat;
     }
-    if (fvCacheName == null) {
-      throw new IllegalArgumentException("a fvCacheName must be configured");
-    }
-    return new CSVFeatureLogger(fvCacheName, format, csvKeyValueDelimiter, csvFeatureSeparator);
+    return new CSVFeatureLogger(format, csvKeyValueDelimiter, csvFeatureSeparator);
   }
 
   class FeatureTransformer extends DocTransformer {

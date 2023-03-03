@@ -611,7 +611,7 @@ public class LTRScoringQuery extends Query implements Accountable {
             // In TestLTRScoringQuery, LTRQParserPlugin -> 216 rerankingQuery.setRequest(req); is not called
             // then req is null and we have an error
             SolrIndexSearcher searcher = request.getSearcher();
-            float[] featureVector =  (float[]) searcher.featureVectorCacheLookup(fvCacheKey(getScoringQuery(), docID()));
+            float[] featureVector =  (float[]) searcher.featureVectorCacheLookup(fvCacheKey(getScoringQuery(), activeDoc));
             if(featureVector != null){
               for (int i = 0; i < featureVector.length; i++) {
                 featuresInfo[i].setValue(featureVector[i]);
@@ -628,7 +628,7 @@ public class LTRScoringQuery extends Query implements Accountable {
                 featuresInfo[featureId].setUsed(true);
                 featureVector[featureId] = featureValue;
               }
-              searcher.featureVectorCacheInsert(fvCacheKey(getScoringQuery(), docID()), featureVector);
+              searcher.featureVectorCacheInsert(fvCacheKey(getScoringQuery(), activeDoc), featureVector);
             }
           }
         }
@@ -712,7 +712,7 @@ public class LTRScoringQuery extends Query implements Accountable {
           freq = 0;
           if (targetDoc == activeDoc) {
             SolrIndexSearcher searcher =  request.getSearcher();
-            float[] featureVector =  (float[]) searcher.featureVectorCacheLookup(fvCacheKey(getScoringQuery(), docID()));
+            float[] featureVector =  (float[]) searcher.featureVectorCacheLookup(fvCacheKey(getScoringQuery(), activeDoc));
             if(featureVector != null){
               for (int i = 0; i < featureVector.length; i++) {
                 featuresInfo[i].setValue(featureVector[i]);
@@ -731,7 +731,7 @@ public class LTRScoringQuery extends Query implements Accountable {
                   featureVector[featureId] = featureValue;
                 }
               }
-              searcher.featureVectorCacheInsert(fvCacheKey(getScoringQuery(), docID()), featureVector);
+              searcher.featureVectorCacheInsert(fvCacheKey(getScoringQuery(), activeDoc), featureVector);
             }
           }
         }

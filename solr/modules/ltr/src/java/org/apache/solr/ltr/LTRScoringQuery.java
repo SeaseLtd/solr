@@ -618,7 +618,7 @@ public class LTRScoringQuery extends Query implements Accountable {
                 featuresInfo[i].setUsed(true);
               }
             } else {
-              featureVector = new float[subScorers.size()];
+              featureVector = new float[featuresInfo.length];
               for (DisiWrapper w = topList; w != null; w = w.next) {
                 final Scorer subScorer = w.scorer;
                 Feature.FeatureWeight scFW = (Feature.FeatureWeight) subScorer.getWeight();
@@ -708,6 +708,7 @@ public class LTRScoringQuery extends Query implements Accountable {
         }
 
         private void setDenseFeaturesInfo() throws IOException {
+          reset();
           freq = 0;
           if (targetDoc == activeDoc) {
             SolrIndexSearcher searcher =  request.getSearcher();
@@ -718,17 +719,16 @@ public class LTRScoringQuery extends Query implements Accountable {
                 featuresInfo[i].setUsed(true);
               }
             } else {
-              featureVector = new float[featureScorers.size()];
-              for (int i = 0; i < featureScorers.size(); i++) {
-                Scorer scorer = featureScorers.get(i);
+              featureVector = new float[featuresInfo.length];
+              for (final Scorer scorer : featureScorers) {
                 if (scorer.docID() == activeDoc) {
                   freq++;
                   Feature.FeatureWeight scFW = (Feature.FeatureWeight) scorer.getWeight();
                   final int featureId = scFW.getIndex();
                   float featureValue = scorer.score();
                   featuresInfo[featureId].setValue(featureValue);
-                  featureVector[i] = featureValue;
                   featuresInfo[featureId].setUsed(true);
+                  featureVector[featureId] = featureValue;
                 }
               }
               searcher.featureVectorCacheInsert(fvCacheKey(getScoringQuery(), docID()), featureVector);
@@ -738,7 +738,6 @@ public class LTRScoringQuery extends Query implements Accountable {
 
         @Override
         public float score() throws IOException {
-          reset();
           setDenseFeaturesInfo();
           return makeNormalizedFeaturesAndScore();
         }

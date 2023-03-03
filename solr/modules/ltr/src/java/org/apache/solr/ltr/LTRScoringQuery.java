@@ -43,6 +43,7 @@ import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.RamUsageEstimator;
+import org.apache.solr.common.util.Pair;
 import org.apache.solr.ltr.feature.Feature;
 import org.apache.solr.ltr.model.LTRScoringModel;
 import org.apache.solr.request.SolrQueryRequest;
@@ -492,6 +493,14 @@ public class LTRScoringQuery extends Query implements Accountable {
       }
     }
 
+    protected void resetFeatureVectorToCache(List<Pair<Float, Boolean>> featureVectorToCache) {
+      for (int i = 0; i < extractedFeatureWeights.length; ++i) {
+        int featId = extractedFeatureWeights[i].getIndex();
+        float value = extractedFeatureWeights[i].getDefaultValue();
+        featureVectorToCache.add(featId, new Pair<>(value, false));
+      }
+    }
+
     @Override
     public ModelScorer scorer(LeafReaderContext context) throws IOException {
 
@@ -611,14 +620,15 @@ public class LTRScoringQuery extends Query implements Accountable {
             // In TestLTRScoringQuery, LTRQParserPlugin -> 216 rerankingQuery.setRequest(req); is not called
             // then req is null and we have an error
             SolrIndexSearcher searcher = request.getSearcher();
-            float[] featureVector =  (float[]) searcher.featureVectorCacheLookup(fvCacheKey(getScoringQuery(), activeDoc));
+            List<Pair<Float, Boolean>> featureVector = searcher.featureVectorCacheLookup(fvCacheKey(getScoringQuery(), activeDoc));
             if(featureVector != null){
-              for (int i = 0; i < featureVector.length; i++) {
-                featuresInfo[i].setValue(featureVector[i]);
-                featuresInfo[i].setUsed(true);
+              for (int i = 0; i < featureVector.size(); i++) {
+                featuresInfo[i].setValue(featureVector.get(i).first());
+                featuresInfo[i].setUsed(featureVector.get(i).second());
               }
             } else {
-              featureVector = new float[featuresInfo.length];
+              List<Pair<Float, Boolean>> featureVectorToCache = new ArrayList<>();
+              resetFeatureVectorToCache(featureVectorToCache);
               for (DisiWrapper w = topList; w != null; w = w.next) {
                 final Scorer subScorer = w.scorer;
                 Feature.FeatureWeight scFW = (Feature.FeatureWeight) subScorer.getWeight();
@@ -626,9 +636,9 @@ public class LTRScoringQuery extends Query implements Accountable {
                 float featureValue = subScorer.score();
                 featuresInfo[featureId].setValue(featureValue);
                 featuresInfo[featureId].setUsed(true);
-                featureVector[featureId] = featureValue;
+                featureVectorToCache.set(featureId, new Pair<>(featureValue, true));
               }
-              searcher.featureVectorCacheInsert(fvCacheKey(getScoringQuery(), activeDoc), featureVector);
+              searcher.featureVectorCacheInsert(fvCacheKey(getScoringQuery(), activeDoc), featureVectorToCache);
             }
           }
         }
@@ -712,14 +722,15 @@ public class LTRScoringQuery extends Query implements Accountable {
           freq = 0;
           if (targetDoc == activeDoc) {
             SolrIndexSearcher searcher =  request.getSearcher();
-            float[] featureVector =  (float[]) searcher.featureVectorCacheLookup(fvCacheKey(getScoringQuery(), activeDoc));
+            List<Pair<Float, Boolean>> featureVector = searcher.featureVectorCacheLookup(fvCacheKey(getScoringQuery(), activeDoc));
             if(featureVector != null){
-              for (int i = 0; i < featureVector.length; i++) {
-                featuresInfo[i].setValue(featureVector[i]);
-                featuresInfo[i].setUsed(true);
+              for (int i = 0; i < featureVector.size(); i++) {
+                featuresInfo[i].setValue(featureVector.get(i).first());
+                featuresInfo[i].setUsed(featureVector.get(i).second());
               }
             } else {
-              featureVector = new float[featuresInfo.length];
+              List<Pair<Float, Boolean>> featureVectorToCache = new ArrayList<>();
+              resetFeatureVectorToCache(featureVectorToCache);
               for (final Scorer scorer : featureScorers) {
                 if (scorer.docID() == activeDoc) {
                   freq++;
@@ -728,10 +739,10 @@ public class LTRScoringQuery extends Query implements Accountable {
                   float featureValue = scorer.score();
                   featuresInfo[featureId].setValue(featureValue);
                   featuresInfo[featureId].setUsed(true);
-                  featureVector[featureId] = featureValue;
+                  featureVectorToCache.set(featureId, new Pair<>(featureValue, true));
                 }
               }
-              searcher.featureVectorCacheInsert(fvCacheKey(getScoringQuery(), activeDoc), featureVector);
+              searcher.featureVectorCacheInsert(fvCacheKey(getScoringQuery(), activeDoc), featureVectorToCache);
             }
           }
         }

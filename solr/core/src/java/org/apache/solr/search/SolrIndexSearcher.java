@@ -90,6 +90,7 @@ import org.apache.solr.common.SolrException;
 import org.apache.solr.common.SolrException.ErrorCode;
 import org.apache.solr.common.params.ModifiableSolrParams;
 import org.apache.solr.common.util.ObjectReleaseTracker;
+import org.apache.solr.common.util.Pair;
 import org.apache.solr.core.DirectoryFactory;
 import org.apache.solr.core.DirectoryFactory.DirContext;
 import org.apache.solr.core.SolrConfig;
@@ -152,7 +153,7 @@ public class SolrIndexSearcher extends IndexSearcher implements Closeable, SolrI
   private final SolrCache<Query, DocSet> filterCache;
   private final SolrCache<QueryResultKey, DocList> queryResultCache;
   private final SolrCache<String, UnInvertedField> fieldValueCache;
-  private final SolrCache<Integer, float[]> featureVectorCache;
+  private final SolrCache<Integer, List<Pair<Float, Boolean>>> featureVectorCache;
   private final LongAdder fullSortCount = new LongAdder();
   private final LongAdder skipSortCount = new LongAdder();
   private final LongAdder liveDocsNaiveCacheHitCount = new LongAdder();
@@ -629,7 +630,7 @@ public class SolrIndexSearcher extends IndexSearcher implements Closeable, SolrI
     return filterCache;
   }
 
-  public SolrCache<Integer, float[]> getFeatureVectorCache() {
+  public SolrCache<Integer, List<Pair<Float, Boolean>>> getFeatureVectorCache() {
     return featureVectorCache;
   }
 
@@ -2432,11 +2433,11 @@ public class SolrIndexSearcher extends IndexSearcher implements Closeable, SolrI
     return cache == null ? null : cache.get(key);
   }
 
-  public Object featureVectorCacheLookup(Integer key) {
+  public List<Pair<Float, Boolean>> featureVectorCacheLookup(Integer key) {
     return featureVectorCache.get(key);
   }
 
-  public Object featureVectorCacheInsert(Integer key, float[] value) {
+  public Object featureVectorCacheInsert(Integer key, List<Pair<Float, Boolean>> value) {
     return featureVectorCache.put(key, value);
   }
 

@@ -622,12 +622,15 @@ public class LTRScoringQuery extends Query implements Accountable {
             SolrIndexSearcher searcher = request.getSearcher();
             List<Pair<Float, Boolean>> featureVector = searcher.featureVectorCacheLookup(fvCacheKey(getScoringQuery(), activeDoc));
             if(featureVector != null){
-              for (int i = 0; i < featureVector.size(); i++) {
-                featuresInfo[i].setValue(featureVector.get(i).first());
-                featuresInfo[i].setUsed(featureVector.get(i).second());
+              for (DisiWrapper w = topList; w != null; w = w.next) {
+                final Scorer subScorer = w.scorer;
+                Feature.FeatureWeight scFW = (Feature.FeatureWeight) subScorer.getWeight();
+                final int featureId = scFW.getIndex();
+                featuresInfo[featureId].setValue(featureVector.get(featureId).first());
+                featuresInfo[featureId].setUsed(featureVector.get(featureId).second());
               }
             } else {
-              List<Pair<Float, Boolean>> featureVectorToCache = new ArrayList<>();
+              List<Pair<Float, Boolean>> featureVectorToCache = new ArrayList<>(Collections.nCopies(featuresInfo.length - 1, null));
               resetFeatureVectorToCache(featureVectorToCache);
               for (DisiWrapper w = topList; w != null; w = w.next) {
                 final Scorer subScorer = w.scorer;
@@ -724,12 +727,16 @@ public class LTRScoringQuery extends Query implements Accountable {
             SolrIndexSearcher searcher =  request.getSearcher();
             List<Pair<Float, Boolean>> featureVector = searcher.featureVectorCacheLookup(fvCacheKey(getScoringQuery(), activeDoc));
             if(featureVector != null){
-              for (int i = 0; i < featureVector.size(); i++) {
-                featuresInfo[i].setValue(featureVector.get(i).first());
-                featuresInfo[i].setUsed(featureVector.get(i).second());
+              for (final Scorer scorer : featureScorers) {
+                if (scorer.docID() == activeDoc) {
+                  Feature.FeatureWeight scFW = (Feature.FeatureWeight) scorer.getWeight();
+                  final int featureId = scFW.getIndex();
+                  featuresInfo[featureId].setValue(featureVector.get(featureId).first());
+                  featuresInfo[featureId].setUsed(featureVector.get(featureId).second());
+                }
               }
             } else {
-              List<Pair<Float, Boolean>> featureVectorToCache = new ArrayList<>();
+              List<Pair<Float, Boolean>> featureVectorToCache = new ArrayList<>(Collections.nCopies(featuresInfo.length - 1, null));
               resetFeatureVectorToCache(featureVectorToCache);
               for (final Scorer scorer : featureScorers) {
                 if (scorer.docID() == activeDoc) {

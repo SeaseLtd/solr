@@ -170,7 +170,6 @@ import org.apache.solr.common.SolrException.ErrorCode;
 import org.apache.solr.common.cloud.Aliases;
 import org.apache.solr.common.cloud.ClusterProperties;
 import org.apache.solr.common.cloud.ClusterState;
-import org.apache.solr.common.cloud.CollectionProperties;
 import org.apache.solr.common.cloud.DocCollection;
 import org.apache.solr.common.cloud.DocCollection.CollectionStateProps;
 import org.apache.solr.common.cloud.ImplicitDocRouter;
@@ -208,6 +207,7 @@ import org.apache.solr.handler.admin.api.AddReplicaAPI;
 import org.apache.solr.handler.admin.api.AddReplicaPropertyAPI;
 import org.apache.solr.handler.admin.api.AdminAPIBase;
 import org.apache.solr.handler.admin.api.BalanceShardUniqueAPI;
+import org.apache.solr.handler.admin.api.CollectionPropertyAPI;
 import org.apache.solr.handler.admin.api.CollectionStatusAPI;
 import org.apache.solr.handler.admin.api.CreateShardAPI;
 import org.apache.solr.handler.admin.api.DeleteCollectionAPI;
@@ -216,6 +216,8 @@ import org.apache.solr.handler.admin.api.DeleteReplicaAPI;
 import org.apache.solr.handler.admin.api.DeleteReplicaPropertyAPI;
 import org.apache.solr.handler.admin.api.DeleteShardAPI;
 import org.apache.solr.handler.admin.api.ForceLeaderAPI;
+import org.apache.solr.handler.admin.api.ListAliasesAPI;
+import org.apache.solr.handler.admin.api.ListCollectionsAPI;
 import org.apache.solr.handler.admin.api.MigrateDocsAPI;
 import org.apache.solr.handler.admin.api.ModifyCollectionAPI;
 import org.apache.solr.handler.admin.api.MoveReplicaAPI;
@@ -223,7 +225,6 @@ import org.apache.solr.handler.admin.api.RebalanceLeadersAPI;
 import org.apache.solr.handler.admin.api.ReloadCollectionAPI;
 import org.apache.solr.handler.admin.api.RenameCollectionAPI;
 import org.apache.solr.handler.admin.api.ReplaceNodeAPI;
-import org.apache.solr.handler.admin.api.SetCollectionPropertyAPI;
 import org.apache.solr.handler.admin.api.SplitShardAPI;
 import org.apache.solr.handler.admin.api.SyncShardAPI;
 import org.apache.solr.handler.api.V2ApiUtils;
@@ -663,8 +664,17 @@ public class CollectionsHandler extends RequestHandlerBase implements Permission
     DELETE_OP(
         DELETE,
         (req, rsp, h) -> {
-          Map<String, Object> map = copy(req.getParams().required(), null, NAME);
-          return copy(req.getParams(), map, FOLLOW_ALIASES);
+          final RequiredSolrParams requiredParams = req.getParams().required();
+          final DeleteCollectionAPI deleteCollectionAPI =
+              new DeleteCollectionAPI(h.coreContainer, req, rsp);
+          final SolrJerseyResponse deleteCollResponse =
+              deleteCollectionAPI.deleteCollection(
+                  requiredParams.get(NAME),
+                  req.getParams().getBool(FOLLOW_ALIASES),
+                  req.getParams().get(ASYNC));
+          V2ApiUtils.squashIntoSolrResponseWithoutHeader(rsp, deleteCollResponse);
+
+          return null;
         }),
     // XXX should this command support followAliases?
     RELOAD_OP(
@@ -866,24 +876,9 @@ public class CollectionsHandler extends RequestHandlerBase implements Permission
     LISTALIASES_OP(
         LISTALIASES,
         (req, rsp, h) -> {
-          ZkStateReader zkStateReader = h.coreContainer.getZkController().getZkStateReader();
-          // if someone calls listAliases, lets ensure we return an up to date response
-          zkStateReader.aliasesManager.update();
-          Aliases aliases = zkStateReader.getAliases();
-          if (aliases != null) {
-            // the aliases themselves...
-            rsp.getValues().add("aliases", aliases.getCollectionAliasMap());
-            // Any properties for the above aliases.
-            Map<String, Map<String, String>> meta = new LinkedHashMap<>();
-            for (String alias : aliases.getCollectionAliasListMap().keySet()) {
-              Map<String, String> collectionAliasProperties =
-                  aliases.getCollectionAliasProperties(alias);
-              if (!collectionAliasProperties.isEmpty()) {
-                meta.put(alias, collectionAliasProperties);
-              }
-            }
-            rsp.getValues().add("properties", meta);
-          }
+          final ListAliasesAPI getAliasesAPI = new ListAliasesAPI(h.coreContainer, req, rsp);
+          final SolrJerseyResponse getAliasesResponse = getAliasesAPI.getAliases();
+          V2ApiUtils.squashIntoSolrResponseWithoutHeader(rsp, getAliasesResponse);
           return null;
         }),
     SPLITSHARD_OP(
@@ -1057,13 +1052,20 @@ public class CollectionsHandler extends RequestHandlerBase implements Permission
     COLLECTIONPROP_OP(
         COLLECTIONPROP,
         (req, rsp, h) -> {
-          String extCollection = req.getParams().required().get(NAME);
-          String collection = h.coreContainer.getAliases().resolveSimpleAlias(extCollection);
-          String name = req.getParams().required().get(PROPERTY_NAME);
-          String val = req.getParams().get(PROPERTY_VALUE);
-          CollectionProperties cp =
-              new CollectionProperties(h.coreContainer.getZkController().getZkClient());
-          cp.setCollectionProperty(collection, name, val);
+          final String collection = req.getParams().required().get(NAME);
+          final String propName = req.getParams().required().get(PROPERTY_NAME);
+          final String val = req.getParams().get(PROPERTY_VALUE);
+
+          final CollectionPropertyAPI setCollPropApi =
+              new CollectionPropertyAPI(h.coreContainer, req, rsp);
+          final SolrJerseyResponse setPropRsp =
+              (val != null)
+                  ? setCollPropApi.createOrUpdateCollectionProperty(
+                      collection,
+                      propName,
+                      new CollectionPropertyAPI.UpdateCollectionPropertyRequestBody(val))
+                  : setCollPropApi.deleteCollectionProperty(collection, propName);
+          V2ApiUtils.squashIntoSolrResponseWithoutHeader(rsp, setPropRsp);
           return null;
         }),
     REQUESTSTATUS_OP(
@@ -1245,19 +1247,10 @@ public class CollectionsHandler extends RequestHandlerBase implements Permission
     LIST_OP(
         LIST,
         (req, rsp, h) -> {
-          NamedList<Object> results = new NamedList<>();
-          Map<String, DocCollection> collections =
-              h.coreContainer
-                  .getZkController()
-                  .getZkStateReader()
-                  .getClusterState()
-                  .getCollectionsMap();
-          List<String> collectionList = new ArrayList<>(collections.keySet());
-          Collections.sort(collectionList);
-          // XXX should we add aliases here?
-          results.add("collections", collectionList);
-          SolrResponse response = new OverseerSolrResponse(results);
-          rsp.getValues().addAll(response.getResponse());
+          final ListCollectionsAPI listCollectionsAPI =
+              new ListCollectionsAPI(h.coreContainer, req, rsp);
+          final SolrJerseyResponse listCollectionsResponse = listCollectionsAPI.listCollections();
+          V2ApiUtils.squashIntoSolrResponseWithoutHeader(rsp, listCollectionsResponse);
           return null;
         }),
     /**
@@ -2081,9 +2074,13 @@ public class CollectionsHandler extends RequestHandlerBase implements Permission
   public Collection<Class<? extends JerseyResource>> getJerseyResources() {
     return List.of(
         AddReplicaPropertyAPI.class,
+        DeleteCollectionAPI.class,
         DeleteReplicaPropertyAPI.class,
+        ListCollectionsAPI.class,
         ReplaceNodeAPI.class,
-        DeleteNodeAPI.class);
+        CollectionPropertyAPI.class,
+        DeleteNodeAPI.class,
+        ListAliasesAPI.class);
   }
 
   @Override
@@ -2097,13 +2094,11 @@ public class CollectionsHandler extends RequestHandlerBase implements Permission
     apis.addAll(AnnotatedApi.getApis(new ForceLeaderAPI(this)));
     apis.addAll(AnnotatedApi.getApis(new DeleteReplicaAPI(this)));
     apis.addAll(AnnotatedApi.getApis(new BalanceShardUniqueAPI(this)));
-    apis.addAll(AnnotatedApi.getApis(new DeleteCollectionAPI(this)));
     apis.addAll(AnnotatedApi.getApis(new MigrateDocsAPI(this)));
     apis.addAll(AnnotatedApi.getApis(new ModifyCollectionAPI(this)));
     apis.addAll(AnnotatedApi.getApis(new MoveReplicaAPI(this)));
     apis.addAll(AnnotatedApi.getApis(new RebalanceLeadersAPI(this)));
     apis.addAll(AnnotatedApi.getApis(new ReloadCollectionAPI(this)));
-    apis.addAll(AnnotatedApi.getApis(new SetCollectionPropertyAPI(this)));
     apis.addAll(AnnotatedApi.getApis(new CollectionStatusAPI(this)));
     apis.addAll(AnnotatedApi.getApis(new RenameCollectionAPI(this)));
     return apis;

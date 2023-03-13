@@ -341,17 +341,28 @@ public abstract class ValueSourceParser implements NamedListInitializedPlugin {
           }
         });
     alias("sum", "add");
+    addParser(
+      "vectorSimilarity",
+      new ValueSourceParser() {
+          @Override
+          public ValueSource parse(FunctionQParser fp) throws SyntaxError {
+              String functionName = fp.parseArg();
+              ValueSource v1 = fp.parseValueSource();
+              ValueSource v2 = fp.parseValueSource();
+              return new DenseVectorSimilarityFunction(functionName, v1, v2, true);
+          }
+      });
       addParser(
-              "vectorSimilarity",
-              new ValueSourceParser() {
-                  @Override
-                  public ValueSource parse(FunctionQParser fp) throws SyntaxError {
-                      String functionName = fp.parseArg();
-                      ValueSource v1 = fp.parseValueSource();
-                      ValueSource v2 = fp.parseValueSource();
-                      return new DenseVectorSimilarityFunction(functionName, v1, v2);
-                  }
-              });
+          "vectorSimilarityScore",
+          new ValueSourceParser() {
+              @Override
+              public ValueSource parse(FunctionQParser fp) throws SyntaxError {
+                  String functionName = fp.parseArg();
+                  ValueSource v1 = fp.parseValueSource();
+                  ValueSource v2 = fp.parseValueSource();
+                  return new DenseVectorSimilarityFunction(functionName, v1, v2, false);
+              }
+      });
     addParser(
         "product",
         new ValueSourceParser() {

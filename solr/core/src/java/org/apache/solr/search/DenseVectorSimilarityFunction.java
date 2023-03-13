@@ -21,18 +21,24 @@ import org.apache.lucene.index.VectorSimilarityFunction;
 import org.apache.lucene.queries.function.FunctionValues;
 import org.apache.lucene.queries.function.ValueSource;
 import org.apache.lucene.queries.function.docvalues.FloatDocValues;
+import org.apache.solr.common.SolrException;
+
+import static java.util.Optional.of;
+import static org.apache.lucene.util.VectorUtil.*;
 
 import java.io.IOException;
 import java.util.Locale;
 import java.util.Map;
 
 import static java.util.Optional.ofNullable;
+import static org.apache.lucene.util.VectorUtil.dotProduct;
 
 public class DenseVectorSimilarityFunction extends ValueSource {
 
     private final VectorSimilarityFunction similarityFunction;
     private final ValueSource vector1;
     private final ValueSource vector2;
+    private boolean usePureFunctions;
 
     public DenseVectorSimilarityFunction(String similarityFunctionName, ValueSource vector1, ValueSource vector2) throws SyntaxError {
 
@@ -44,17 +50,60 @@ public class DenseVectorSimilarityFunction extends ValueSource {
         this.vector2 = vector2;
     }
 
+    public DenseVectorSimilarityFunction(String similarityFunctionName, ValueSource vector1, ValueSource vector2, boolean usePureFunctions) throws SyntaxError {
+
+        this.similarityFunction =
+                ofNullable(similarityFunctionName)
+                        .map(value -> VectorSimilarityFunction.valueOf(value.toUpperCase(Locale.ROOT)))
+                        .orElseThrow(() -> new SyntaxError("wrong similarity function"));
+        this.vector1 = vector1;
+        this.vector2 = vector2;
+        this.usePureFunctions = usePureFunctions;
+    }
+
     @Override
     public FunctionValues getValues(Map<Object, Object> context, LeafReaderContext readerContext)
             throws IOException {
         return new FloatDocValues(this) {
             @Override
             public float floatVal(int doc) throws IOException {
-                VectorFunctionValues vector1Values = (VectorFunctionValues) vector1.getValues(context, readerContext);
-                VectorFunctionValues vector2Values = (VectorFunctionValues)  vector2.getValues(context, readerContext);
-                return similarityFunction.compare(vector1Values.vectorVal(doc), vector2Values.vectorVal(doc));
+
+
+                float[] vector1Values = getVectorValues(vector1, doc);
+                float[] vector2Values = getVectorValues(vector2, doc);
+
+                try {
+                    if (usePureFunctions) {
+                        return pureVectorSimilarityFunction(vector1Values, vector2Values);
+                    } else {
+                        return similarityFunction.compare(vector1Values, vector2Values);
+                    }
+                } catch (IllegalArgumentException e){
+                    throw new SolrException(SolrException.ErrorCode.BAD_REQUEST, e);
+                }
+            }
+
+            float pureVectorSimilarityFunction(float[] vector1, float[] vector2){
+                if (similarityFunction.equals(VectorSimilarityFunction.EUCLIDEAN)){
+                    return squareDistance(vector1, vector2);
+                } else if (similarityFunction.equals(VectorSimilarityFunction.COSINE)){
+                    return cosine(vector1, vector2);
+                } else {
+                    return dotProduct(vector1, vector2);
+                }
+            }
+
+            float[] getVectorValues(ValueSource vector, int doc) throws IOException {
+                VectorFunctionValues vectorFunctionValues = of(vector.getValues(context, readerContext))
+                        .filter(velues -> velues instanceof VectorFunctionValues)
+                        .map(values -> ((VectorFunctionValues) values))
+                        .orElseThrow(() -> new SolrException(SolrException.ErrorCode.BAD_REQUEST, "Wrong parameter type: The input is not a vector value"));
+
+                return vectorFunctionValues.vectorVal(doc);
             }
         };
+
+
     }
 
     @Override

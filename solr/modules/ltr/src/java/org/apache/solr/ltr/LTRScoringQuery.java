@@ -601,15 +601,21 @@ public class LTRScoringQuery extends Query implements Accountable {
 
         private void setSparseFeaturesInfo() throws IOException {
           final DisiWrapper topList = subScorers.topList();
+          reset();
           if (activeDoc == targetDoc) {
             // In TestLTRScoringQuery, LTRQParserPlugin -> 216 rerankingQuery.setRequest(req); is not called
             // then req is null and we have an error
             SolrIndexSearcher searcher = request.getSearcher();
             float[] featureVector =  (float[]) searcher.featureVectorCacheLookup(fvCacheKey(getScoringQuery(), activeDoc));
             if(featureVector != null){
-              for (int i = 0; i < featureVector.length; i++) {
-                featuresInfo[i].setValue(featureVector[i]);
-                featuresInfo[i].setUsed(true);
+              int i = 0;
+              for (DisiWrapper w = topList; w != null; w = w.next) {
+                final Scorer subScorer = w.scorer;
+                Feature.FeatureWeight scFW = (Feature.FeatureWeight) subScorer.getWeight();
+                final int featureId = scFW.getIndex();
+                featuresInfo[featureId].setValue(featureVector[i]);
+                featuresInfo[featureId].setUsed(true);
+                i++;
               }
             } else {
               featureVector = new float[subScorers.size()];
@@ -620,9 +626,9 @@ public class LTRScoringQuery extends Query implements Accountable {
                 final int featureId = scFW.getIndex();
                 float featureValue = subScorer.score();
                 featuresInfo[featureId].setValue(featureValue);
+                featuresInfo[featureId].setUsed(true);
                 featureVector[i] = featureValue;
                 i++;
-                featuresInfo[featureId].setUsed(true);
               }
               searcher.featureVectorCacheInsert(fvCacheKey(getScoringQuery(), activeDoc), featureVector);
             }
@@ -716,8 +722,13 @@ public class LTRScoringQuery extends Query implements Accountable {
             float[] featureVector =  (float[]) searcher.featureVectorCacheLookup(fvCacheKey(getScoringQuery(), activeDoc));
             if(featureVector != null){
               for (int i = 0; i < featureVector.length; i++) {
-                featuresInfo[i].setValue(featureVector[i]);
-                featuresInfo[i].setUsed(true);
+                Scorer scorer = featureScorers.get(i);
+                if (scorer.docID() == activeDoc) {
+                  Feature.FeatureWeight scFW = (Feature.FeatureWeight) scorer.getWeight();
+                  final int featureId = scFW.getIndex();
+                  featuresInfo[featureId].setValue(featureVector[i]);
+                  featuresInfo[featureId].setUsed(true);
+                }
               }
             } else {
               featureVector = new float[featureScorers.size()];

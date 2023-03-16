@@ -73,7 +73,6 @@ public class LTRFeatureLoggerTransformerFactory extends TransformerFactory {
 
   private static String DEFAULT_LOGGING_MODEL_NAME = "logging-model";
 
-  private String fvCacheName;
   private String loggingModelName = DEFAULT_LOGGING_MODEL_NAME;
   private String defaultStore;
   private FeatureLogger.FeatureFormat defaultFormat = FeatureLogger.FeatureFormat.DENSE;
@@ -81,10 +80,6 @@ public class LTRFeatureLoggerTransformerFactory extends TransformerFactory {
   private char csvFeatureSeparator = CSVFeatureLogger.DEFAULT_FEATURE_SEPARATOR;
 
   private LTRThreadModule threadManager = null;
-
-  public void setFvCacheName(String fvCacheName) {
-    this.fvCacheName = fvCacheName;
-  }
 
   public void setLoggingModelName(String loggingModelName) {
     this.loggingModelName = loggingModelName;
@@ -153,10 +148,8 @@ public class LTRFeatureLoggerTransformerFactory extends TransformerFactory {
     } else {
       format = this.defaultFormat;
     }
-    if (fvCacheName == null) {
-      throw new IllegalArgumentException("a fvCacheName must be configured");
-    }
-    return new CSVFeatureLogger(fvCacheName, format, csvKeyValueDelimiter, csvFeatureSeparator);
+  
+    return new CSVFeatureLogger(format, csvKeyValueDelimiter, csvFeatureSeparator);
   }
 
   class FeatureTransformer extends DocTransformer {
@@ -371,7 +364,7 @@ public class LTRFeatureLoggerTransformerFactory extends TransformerFactory {
       }
       if (!(rerankingQuery instanceof OriginalRankingLTRScoringQuery) || hasExplicitFeatureStore) {
         String featureVector =
-                featureLogger.toStringFeatureVector(
+                featureLogger.printFeatureVector(
                         LTRRescorer.extractFeaturesInfo(
                                 rerankingModelWeight,
                                 docid,

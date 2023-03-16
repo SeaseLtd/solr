@@ -28,9 +28,9 @@ public abstract class FeatureLogger {
 
   protected final FeatureFormat featureFormat;
 
-  protected FeatureLogger(String fvCacheName, FeatureFormat f) {
+  protected FeatureLogger(FeatureFormat f) {
     this.featureFormat = f;
   }
 
-  public abstract String toStringFeatureVector(LTRScoringQuery.FeatureInfo[] featuresInfo);
+  public abstract String printFeatureVector(LTRScoringQuery.FeatureInfo[] featuresInfo);
 }

@@ -377,7 +377,7 @@ public class TestRerankBase extends RestTestBase {
     return getFeatures(Arrays.asList(names));
   }
 
-  protected static void bulkIndex() throws Exception {
+  protected static void         bulkIndex() throws Exception {
     assertU(
         adoc(
             "title",

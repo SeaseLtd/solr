@@ -23,20 +23,20 @@ public class CSVFeatureLogger extends FeatureLogger {
   private final char keyValueSep;
   private final char featureSep;
 
-  public CSVFeatureLogger(String fvCacheName, FeatureFormat f) {
-    super(fvCacheName, f);
+  public CSVFeatureLogger(FeatureFormat f) {
+    super(f);
     this.keyValueSep = DEFAULT_KEY_VALUE_SEPARATOR;
     this.featureSep = DEFAULT_FEATURE_SEPARATOR;
   }
 
-  public CSVFeatureLogger(String fvCacheName, FeatureFormat f, char keyValueSep, char featureSep) {
-    super(fvCacheName, f);
+  public CSVFeatureLogger(FeatureFormat f, char keyValueSep, char featureSep) {
+    super(f);
     this.keyValueSep = keyValueSep;
     this.featureSep = featureSep;
   }
 
   @Override
-  public String toStringFeatureVector(LTRScoringQuery.FeatureInfo[] featuresInfo) {
+  public String printFeatureVector(LTRScoringQuery.FeatureInfo[] featuresInfo) {
     // Allocate the buffer to a size based on the number of features instead of the
     // default 16.  You need space for the name, value, and two separators per feature,
     // but not all the features are expected to fire, so this is just a naive estimate.

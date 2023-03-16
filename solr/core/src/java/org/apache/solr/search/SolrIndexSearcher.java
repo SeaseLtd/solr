@@ -2432,14 +2432,6 @@ public class SolrIndexSearcher extends IndexSearcher implements Closeable, SolrI
     return cache == null ? null : cache.get(key);
   }
 
-  public Object featureVectorCacheLookup(Integer key) {
-    return featureVectorCache.get(key);
-  }
-
-  public Object featureVectorCacheInsert(Integer key, float[] value) {
-    return featureVectorCache.put(key, value);
-  }
-
   /** insert an entry in a generic cache */
   @SuppressWarnings({"unchecked"})
   public Object cacheInsert(String cacheName, Object key, Object val) {

@@ -32,7 +32,8 @@ public class NoOpRegenerator implements CacheRegenerator {
       SolrCache<K, V> newCache,
       SolrCache<K, V> oldCache,
       K oldKey,
-      V oldVal) {
+      V oldVal)
+      throws IOException {
     newCache.put(oldKey, oldVal);
     return true;
   }

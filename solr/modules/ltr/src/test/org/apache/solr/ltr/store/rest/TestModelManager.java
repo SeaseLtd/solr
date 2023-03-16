@@ -202,4 +202,58 @@ public class TestModelManager extends TestRerankBase {
     restTestHarness.delete(
         ManagedFeatureStore.REST_END_POINT + "/" + FeatureStore.DEFAULT_FEATURE_STORE_NAME);
   }
+
+  @Test
+  public void testRestManagerEndpointsWithTypo() throws Exception {
+    String featureStoreEndpointWithTypo = "/schema/features-store";
+    String featureStoreEndpointWithTypoAndStoreName = "/schema/features-store/store1";
+    String modelStoreEndpointWithTypo = "/schema/models-store";
+    String modelStoreEndpointWithTypoAndModelName = "/schema/models-store/model1";
+
+    assertJQ(
+        featureStoreEndpointWithTypo,
+        "/error/msg=='No REST managed resource registered for path "
+            + featureStoreEndpointWithTypo
+            + "'");
+    assertJQ(
+        featureStoreEndpointWithTypoAndStoreName,
+        "/error/msg=='No REST managed resource registered for path "
+            + featureStoreEndpointWithTypoAndStoreName
+            + "'");
+    assertJQ(
+        modelStoreEndpointWithTypo,
+        "/error/msg=='No REST managed resource registered for path "
+            + modelStoreEndpointWithTypo
+            + "'");
+    assertJQ(
+        modelStoreEndpointWithTypoAndModelName,
+        "/error/msg=='No REST managed resource registered for path "
+            + modelStoreEndpointWithTypoAndModelName
+            + "'");
+
+    assertJPut(
+        featureStoreEndpointWithTypo,
+        json("{ 'class':'solr.ManagedFeatureStore' }"),
+        "/error/msg=='No REST managed resource registered for path "
+            + featureStoreEndpointWithTypo
+            + "'");
+
+    assertJPut(
+        modelStoreEndpointWithTypo,
+        json("{ 'class':'solr.ManagedModelStore' }"),
+        "/error/msg=='No REST managed resource registered for path "
+            + modelStoreEndpointWithTypo
+            + "'");
+
+    assertJDelete(
+        featureStoreEndpointWithTypoAndStoreName,
+        "/error/msg=='No REST managed resource registered for path "
+            + featureStoreEndpointWithTypoAndStoreName
+            + "'");
+    assertJDelete(
+        modelStoreEndpointWithTypoAndModelName,
+        "/error/msg=='No REST managed resource registered for path "
+            + modelStoreEndpointWithTypoAndModelName
+            + "'");
+  }
 }

@@ -623,7 +623,7 @@ public class LTRScoringQuery extends Query implements Accountable {
         private final ScoringQuerySparseIterator sparseIterator;
 
         public SparseModelScorer(
-                Weight weight, List<Feature.FeatureWeight.FeatureScorer> featureScorers) {
+            Weight weight, List<Feature.FeatureWeight.FeatureScorer> featureScorers) {
           super(weight);
           if (featureScorers.size() <= 1) {
             throw new IllegalArgumentException("There must be at least 2 subScorers");
@@ -709,7 +709,7 @@ public class LTRScoringQuery extends Query implements Accountable {
         private final List<Feature.FeatureWeight.FeatureScorer> featureScorers;
 
         public DenseModelScorer(
-                Weight weight, List<Feature.FeatureWeight.FeatureScorer> featureScorers) {
+            Weight weight, List<Feature.FeatureWeight.FeatureScorer> featureScorers) {
           super(weight);
           this.featureScorers = featureScorers;
         }
@@ -735,9 +735,6 @@ public class LTRScoringQuery extends Query implements Accountable {
           }
           return featureVector;
         }
-
-
-
 
         @Override
         public final Collection<ChildScorable> getChildren() {
@@ -799,4 +796,4 @@ public class LTRScoringQuery extends Query implements Accountable {
       }
     }
   }
-  }
+}

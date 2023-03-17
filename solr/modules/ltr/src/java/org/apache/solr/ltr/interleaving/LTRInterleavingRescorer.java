@@ -115,12 +115,12 @@ public class LTRInterleavingRescorer extends LTRRescorer {
   }
 
   public void scoreFeatures(
-          int topN,
-          LTRScoringQuery.ModelWeight[] modelWeights,
-          ScoreDoc[] hits,
-          List<LeafReaderContext> leaves,
-          ScoreDoc[][] rerankedPerModel)
-          throws IOException {
+      int topN,
+      LTRScoringQuery.ModelWeight[] modelWeights,
+      ScoreDoc[] hits,
+      List<LeafReaderContext> leaves,
+      ScoreDoc[][] rerankedPerModel)
+      throws IOException {
 
     int readerUpto = -1;
     int endDoc = 0;

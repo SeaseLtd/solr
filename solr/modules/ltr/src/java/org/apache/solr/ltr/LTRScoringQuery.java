@@ -22,10 +22,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.PriorityQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
@@ -45,7 +43,6 @@ import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.RamUsageEstimator;
-import org.apache.solr.common.util.Pair;
 import org.apache.solr.ltr.feature.Feature;
 import org.apache.solr.ltr.model.LTRScoringModel;
 import org.apache.solr.request.SolrQueryRequest;
@@ -234,7 +231,7 @@ public class LTRScoringQuery extends Query implements Accountable {
         extractedFeatureWeights[i++] = fw;
       }
       for (final Feature f : modelFeatures) {
-        // we can look up by featureid because all features will be
+        // we can lookup by featureid because all features will be
         // extracted when this.extractAllFeatures is set
         modelFeaturesWeights[j++] = extractedFeatureWeights[f.getIndex()];
       }
@@ -402,10 +399,10 @@ public class LTRScoringQuery extends Query implements Accountable {
       this.modelFeatureWeights = modelFeatureWeights;
       this.modelFeatureValuesNormalized = new float[modelFeatureWeights.length];
       this.featuresInfo = new FeatureInfo[allFeaturesSize];
-      initDefaultFeatureInfos();
+      setFeaturesInfo();
     }
 
-    private void initDefaultFeatureInfos() {
+    private void setFeaturesInfo() {
       for (int i = 0; i < extractedFeatureWeights.length; ++i) {
         String featName = extractedFeatureWeights[i].getName();
         int featId = extractedFeatureWeights[i].getIndex();
@@ -709,7 +706,6 @@ public class LTRScoringQuery extends Query implements Accountable {
       }
 
       private class DenseModelScorer extends FeatureTraversalScorer {
-        private int freq = -1;
         private final List<Feature.FeatureWeight.FeatureScorer> featureScorers;
 
         public DenseModelScorer(
@@ -725,12 +721,10 @@ public class LTRScoringQuery extends Query implements Accountable {
 
         @Override
         protected float[] extractFeatureVector() throws IOException {
-          freq = 0;
           float[] featureVector = initFeatureVector(featuresInfo);
           for (int i = 0; i < featureScorers.size(); i++) {
             Scorer scorer = featureScorers.get(i);
             if (scorer.docID() == activeDoc) {
-              freq++;
               Feature.FeatureWeight scFW = (Feature.FeatureWeight) scorer.getWeight();
               final int featureId = scFW.getIndex();
               float featureValue = scorer.score();

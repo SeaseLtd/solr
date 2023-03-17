@@ -103,7 +103,7 @@ public class LTRInterleavingRescorer extends LTRRescorer {
                 searcher.createWeight(searcher.rewrite(rerankingQueries[i]), ScoreMode.COMPLETE, 1);
       }
     }
-    scoreFeatures(modelWeights, firstPassResults, leaves, reRankedPerModel);
+    scoreFeatures(topN, modelWeights, firstPassResults, leaves, reRankedPerModel);
 
     for (int i = 0; i < rerankingQueries.length; i++) {
       if (originalRankingIndex == null || originalRankingIndex != i) {
@@ -115,11 +115,12 @@ public class LTRInterleavingRescorer extends LTRRescorer {
   }
 
   public void scoreFeatures(
-      LTRScoringQuery.ModelWeight[] modelWeights,
-      ScoreDoc[] hits,
-      List<LeafReaderContext> leaves,
-      ScoreDoc[][] rerankedPerModel)
-      throws IOException {
+          int topN,
+          LTRScoringQuery.ModelWeight[] modelWeights,
+          ScoreDoc[] hits,
+          List<LeafReaderContext> leaves,
+          ScoreDoc[][] rerankedPerModel)
+          throws IOException {
 
     int readerUpto = -1;
     int endDoc = 0;
@@ -149,9 +150,8 @@ public class LTRInterleavingRescorer extends LTRRescorer {
       for (int i = 0; i < rerankingQueries.length; i++) {
         if (modelWeights[i] != null) {
           final ScoreDoc hit_i = new ScoreDoc(hit.doc, hit.score, hit.shardIndex);
-          //TO CHECK
           scoreSingleHit(
-              docBase, hitUpto, hit_i, docID, scorers[i], rerankedPerModel[i]);
+              topN, docBase, hitUpto, hit_i, docID, scorers[i], rerankedPerModel[i]);
         }
       }
       hitUpto++;

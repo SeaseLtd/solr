@@ -242,7 +242,7 @@ public class TestFieldValueFeature extends TestRerankBase {
     query = new SolrQuery();
     query.setQuery("id:42");
     query.add("rq", "{!ltr model=model reRankDocs=4}");
-    query.add("fl", "[fv]");
+    query.add("fl", "[fv format=dense]");
 
     // "0.0" in the assertJQ below is more readable than
     // Float.toString(FIELD_VALUE_FEATURE_DEFAULT_VAL) but first make sure it's equivalent
@@ -353,7 +353,7 @@ public class TestFieldValueFeature extends TestRerankBase {
     final SolrQuery query = new SolrQuery();
     query.setQuery("id:42");
     query.add("rq", "{!ltr model=not-existing-field-model reRankDocs=4}");
-    query.add("fl", "[fv]");
+    query.add("fl", "[fv format=dense]");
     ObservingFieldValueFeature.usedScorerClass = null; // to clear away any previous test's use
     assertJQ("/query" + query.toQueryString(), "/response/numFound/==1");
     assertJQ(
@@ -389,7 +389,7 @@ public class TestFieldValueFeature extends TestRerankBase {
 
       final SolrQuery query = new SolrQuery("id:42");
       query.add("rq", "{!ltr model=" + field + "-model reRankDocs=4}");
-      query.add("fl", "[fv]");
+      query.add("fl", "[fv format=dense]");
 
       ObservingFieldValueFeature.usedScorerClass = null; // to clear away any previous test's use
       assertJQ("/query" + query.toQueryString(), "/response/numFound/==1");
@@ -420,7 +420,7 @@ public class TestFieldValueFeature extends TestRerankBase {
     SolrQuery query = new SolrQuery();
     query.setQuery("id:4");
     query.add("rq", "{!ltr model=trendy-model reRankDocs=4}");
-    query.add("fl", "[fv]");
+    query.add("fl", "[fv format=dense]");
     assertJQ(
         "/query" + query.toQueryString(),
         "/response/docs/[0]/=={'[fv]':'"
@@ -441,7 +441,7 @@ public class TestFieldValueFeature extends TestRerankBase {
     query = new SolrQuery();
     query.setQuery("id:2");
     query.add("rq", "{!ltr model=trendy-model reRankDocs=4}");
-    query.add("fl", "[fv]");
+    query.add("fl", "[fv format=dense]");
     assertJQ(
         "/query" + query.toQueryString(),
         "/response/docs/[0]/=={'[fv]':'"
@@ -597,7 +597,7 @@ public class TestFieldValueFeature extends TestRerankBase {
 
         final SolrQuery query = new SolrQuery("id:21");
         query.add("rq", "{!ltr model=" + field + "-model reRankDocs=4}");
-        query.add("fl", "[fv]");
+        query.add("fl", "[fv format=dense]");
 
         assertJQ("/query" + query.toQueryString(), inputAndTest[1]);
       }
@@ -644,7 +644,7 @@ public class TestFieldValueFeature extends TestRerankBase {
 
         final SolrQuery query = new SolrQuery("id:21");
         query.add("rq", "{!ltr model=" + field + "-model reRankDocs=4}");
-        query.add("fl", "[fv]");
+        query.add("fl", "[fv format=dense]");
 
         assertJQ("/query" + query.toQueryString(), inputAndTest[1]);
       }

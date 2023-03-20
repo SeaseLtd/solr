@@ -499,7 +499,7 @@ public class LTRScoringQuery extends Query implements Accountable {
       // score on the model for every document, since 0 features matching could
       // return a
       // non 0 score for a given model.
-      ModelScorer mscorer = new ModelScorer(this, featureScorers);
+      ModelScorer mscorer = new ModelScorer(this, featureScorers, context);
       return mscorer;
     }
 
@@ -516,7 +516,7 @@ public class LTRScoringQuery extends Query implements Accountable {
         return docInfo;
       }
 
-      public ModelScorer(Weight weight, List<Feature.FeatureWeight.FeatureScorer> featureScorers) {
+      public ModelScorer(Weight weight, List<Feature.FeatureWeight.FeatureScorer> featureScorers, LeafReaderContext leafContext) {
         super(weight);
         docInfo = new DocInfo();
         for (final Feature.FeatureWeight.FeatureScorer subScorer : featureScorers) {
@@ -524,9 +524,9 @@ public class LTRScoringQuery extends Query implements Accountable {
         }
         if (featureScorers.size() <= 1) {
           // future enhancement: allow the use of dense features in other cases
-          featureTraversalScorer = new DenseModelScorer(weight, featureScorers);
+          featureTraversalScorer = new DenseModelScorer(weight, featureScorers, leafContext);
         } else {
-          featureTraversalScorer = new SparseModelScorer(weight, featureScorers);
+          featureTraversalScorer = new SparseModelScorer(weight, featureScorers, leafContext);
         }
       }
 
@@ -583,7 +583,8 @@ public class LTRScoringQuery extends Query implements Accountable {
           if (activeDoc == targetDoc) {
             SolrIndexSearcher searcher = request.getSearcher();
             SolrCache<Integer, float[]> featureVectorCache = searcher.getFeatureVectorCache();
-            float[] featureVector = featureVectorCache.get(fvCacheKey(getScoringQuery(), activeDoc));
+            int docId = activeDoc + getLeafContext().docBase;
+            float[] featureVector = featureVectorCache.get(fvCacheKey(getScoringQuery(), docId));
             if (featureVector != null) {
               for (int i = 0; i < extractedFeatureWeights.length; i++) {
                 int featureId = extractedFeatureWeights[i].getIndex();
@@ -595,7 +596,7 @@ public class LTRScoringQuery extends Query implements Accountable {
               }
             } else {
               featureVector = extractFeatureVector();
-              featureVectorCache.put(fvCacheKey(getScoringQuery(), activeDoc), featureVector);
+              featureVectorCache.put(fvCacheKey(getScoringQuery(), docId), featureVector);
             }
           }
         }
@@ -616,14 +617,15 @@ public class LTRScoringQuery extends Query implements Accountable {
         
         protected abstract float[] extractFeatureVector() throws IOException;
 
-        
+        protected abstract LeafReaderContext getLeafContext();
       }
       private class SparseModelScorer extends FeatureTraversalScorer {
         private final DisiPriorityQueue subScorers;
         private final ScoringQuerySparseIterator sparseIterator;
+        private final LeafReaderContext leafContext;
 
         public SparseModelScorer(
-            Weight weight, List<Feature.FeatureWeight.FeatureScorer> featureScorers) {
+            Weight weight, List<Feature.FeatureWeight.FeatureScorer> featureScorers, LeafReaderContext leafContext) {
           super(weight);
           if (featureScorers.size() <= 1) {
             throw new IllegalArgumentException("There must be at least 2 subScorers");
@@ -635,6 +637,12 @@ public class LTRScoringQuery extends Query implements Accountable {
           }
 
           sparseIterator = new ScoringQuerySparseIterator(subScorers);
+          this.leafContext = leafContext;
+        }
+
+        @Override
+        protected LeafReaderContext getLeafContext() {
+          return this.leafContext;
         }
 
         @Override
@@ -708,10 +716,18 @@ public class LTRScoringQuery extends Query implements Accountable {
       private class DenseModelScorer extends FeatureTraversalScorer {
         private final List<Feature.FeatureWeight.FeatureScorer> featureScorers;
 
+        private LeafReaderContext leafContext;
+
         public DenseModelScorer(
-            Weight weight, List<Feature.FeatureWeight.FeatureScorer> featureScorers) {
+            Weight weight, List<Feature.FeatureWeight.FeatureScorer> featureScorers, LeafReaderContext leafContext) {
           super(weight);
           this.featureScorers = featureScorers;
+          this.leafContext = leafContext;
+        }
+
+        @Override
+        protected LeafReaderContext getLeafContext() {
+          return this.leafContext;
         }
 
         @Override

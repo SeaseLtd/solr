@@ -63,38 +63,59 @@ public class TestFeatureLogging extends TestRerankBase {
             "pop", "2.0",
             "nomatch", "0.0",
             "yesmatch", "1.0");
+
+    final SolrQuery query_dense = new SolrQuery();
+    query_dense.setQuery("title:bloomberg");
+    query_dense.add("fl", "id,popularity,[fv]");
+    query_dense.add("rows", "3");
+    query_dense.add("debugQuery", "on");
+    query_dense.add("rq", "{!ltr reRankDocs=3 model=sum1}");
+
+    restTestHarness.query("/query" + query_dense.toQueryString());
+    assertJQ(
+        "/query" + query_dense.toQueryString(),
+        "/response/docs/[0]/=={'id':'7', 'popularity':2,  '[fv]':'" + docs0fv_dense_csv + "'}");
+
+    query_dense.remove("fl");
+    query_dense.add("fl", "[fv]");
+    query_dense.add("rows", "3");
+    query_dense.add("rq", "{!ltr reRankDocs=3 model=sum1}");
+
+    restTestHarness.query("/query" + query_dense.toQueryString());
+    assertJQ(
+        "/query" + query_dense.toQueryString(),
+        "/response/docs/[0]/=={'[fv]':'" + docs0fv_dense_csv + "'}");
+
+
     final String docs0fv_sparse_csv =
-        FeatureLoggerTestUtils.toFeatureVector(
-            "c1", "1.0",
-            "c2", "2.0",
-            "c3", "3.0",
-            "pop", "2.0",
-            "yesmatch", "1.0");
+            FeatureLoggerTestUtils.toFeatureVector(
+                    "c1", "1.0",
+                    "c2", "2.0",
+                    "c3", "3.0",
+                    "pop", "2.0",
+                    "yesmatch", "1.0");
 
-    final String docs0fv_default_csv =
-        chooseDefaultFeatureVector(docs0fv_dense_csv, docs0fv_sparse_csv);
+    final SolrQuery query_sparse = new SolrQuery();
+    query_sparse.setQuery("title:bloomberg");
+    query_sparse.add("fl", "id,popularity,[fv format=sparse]");
+    query_sparse.add("rows", "3");
+    query_sparse.add("debugQuery", "on");
+    query_sparse.add("rq", "{!ltr reRankDocs=3 model=sum1}");
 
-    final SolrQuery query = new SolrQuery();
-    query.setQuery("title:bloomberg");
-    query.add("fl", "id,popularity,[fv]");
-    query.add("rows", "3");
-    query.add("debugQuery", "on");
-    query.add("rq", "{!ltr reRankDocs=3 model=sum1}");
-
-    restTestHarness.query("/query" + query.toQueryString());
+    restTestHarness.query("/query" + query_sparse.toQueryString());
     assertJQ(
-        "/query" + query.toQueryString(),
-        "/response/docs/[0]/=={'id':'7', 'popularity':2,  '[fv]':'" + docs0fv_default_csv + "'}");
+            "/query" + query_sparse.toQueryString(),
+            "/response/docs/[0]/=={'id':'7', 'popularity':2,  '[fv]':'" + docs0fv_sparse_csv + "'}");
 
-    query.remove("fl");
-    query.add("fl", "[fv]");
-    query.add("rows", "3");
-    query.add("rq", "{!ltr reRankDocs=3 model=sum1}");
+    query_sparse.remove("fl");
+    query_sparse.add("fl", "[fv format=sparse]");
+    query_sparse.add("rows", "3");
+    query_sparse.add("rq", "{!ltr reRankDocs=3 model=sum1}");
 
-    restTestHarness.query("/query" + query.toQueryString());
+    restTestHarness.query("/query" + query_sparse.toQueryString());
     assertJQ(
-        "/query" + query.toQueryString(),
-        "/response/docs/[0]/=={'[fv]':'" + docs0fv_default_csv + "'}");
+            "/query" + query_sparse.toQueryString(),
+            "/response/docs/[0]/=={'[fv]':'" + docs0fv_sparse_csv + "'}");
   }
 
   @Test
@@ -215,11 +236,6 @@ public class TestFeatureLogging extends TestRerankBase {
     final String docs1fv_dense_csv =
         FeatureLoggerTestUtils.toFeatureVector("match", "0.0", "c4", "1.0");
 
-    final String docs0fv_default_csv =
-        chooseDefaultFeatureVector(docs0fv_dense_csv, docs0fv_sparse_csv);
-    final String docs1fv_default_csv =
-        chooseDefaultFeatureVector(docs1fv_dense_csv, docs1fv_sparse_csv);
-
     final SolrQuery query = new SolrQuery();
     query.setQuery("title:bloomberg");
     query.add("rows", "10");
@@ -229,9 +245,9 @@ public class TestFeatureLogging extends TestRerankBase {
     query.remove("fl");
     query.add("fl", "*,score,fv:[fv store=test4]");
     assertJQ(
-        "/query" + query.toQueryString(), "/response/docs/[0]/fv/=='" + docs0fv_default_csv + "'");
+        "/query" + query.toQueryString(), "/response/docs/[0]/fv/=='" + docs0fv_dense_csv + "'");
     assertJQ(
-        "/query" + query.toQueryString(), "/response/docs/[1]/fv/=='" + docs1fv_default_csv + "'");
+        "/query" + query.toQueryString(), "/response/docs/[1]/fv/=='" + docs1fv_dense_csv + "'");
 
     // csv - sparse feature format check
     query.remove("fl");

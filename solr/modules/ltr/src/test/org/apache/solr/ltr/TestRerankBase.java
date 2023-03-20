@@ -56,7 +56,6 @@ public class TestRerankBase extends RestTestBase {
 
   public static final String FEATURE_FILE_NAME = "_schema_feature-store.json";
   public static final String MODEL_FILE_NAME = "_schema_model-store.json";
-  public static final String PARENT_ENDPOINT = "/schema/*";
 
   protected static final String COLLECTION = "collection1";
   protected static final String CONF_DIR = COLLECTION + "/conf";
@@ -66,56 +65,17 @@ public class TestRerankBase extends RestTestBase {
 
   private static final String SYSTEM_PROPERTY_SOLR_LTR_TRANSFORMER_FV_DEFAULTFORMAT =
       "solr.ltr.transformer.fv.defaultFormat";
-  private static String defaultFeatureFormat;
-
-  protected String chooseDefaultFeatureVector(String dense, String sparse) {
-    if (defaultFeatureFormat == null) {
-      // to match <code><str
-      // name="defaultFormat">${solr.ltr.transformer.fv.defaultFormat:dense}</str></code> snippet
-      return dense;
-    } else if ("dense".equals(defaultFeatureFormat)) {
-      return dense;
-    } else if ("sparse".equals(defaultFeatureFormat)) {
-      return sparse;
-    } else {
-      fail("unexpected feature format choice: " + defaultFeatureFormat);
-      return null;
-    }
-  }
-
-  protected static void chooseDefaultFeatureFormat() throws Exception {
-    switch (random().nextInt(3)) {
-      case 0:
-        defaultFeatureFormat = null;
-        break;
-      case 1:
-        defaultFeatureFormat = "dense";
-        break;
-      case 2:
-        defaultFeatureFormat = "sparse";
-        break;
-      default:
-        fail("unexpected feature format choice");
-        break;
-    }
-    if (defaultFeatureFormat != null) {
-      System.setProperty(
-          SYSTEM_PROPERTY_SOLR_LTR_TRANSFORMER_FV_DEFAULTFORMAT, defaultFeatureFormat);
-    }
-  }
 
   protected static void unchooseDefaultFeatureFormat() {
     System.clearProperty(SYSTEM_PROPERTY_SOLR_LTR_TRANSFORMER_FV_DEFAULTFORMAT);
   }
 
   protected static void setuptest(boolean bulkIndex) throws Exception {
-    chooseDefaultFeatureFormat();
     setuptest("solrconfig-ltr.xml", "schema.xml");
     if (bulkIndex) bulkIndex();
   }
 
   protected static void setupPersistenttest(boolean bulkIndex) throws Exception {
-    chooseDefaultFeatureFormat();
     setupPersistentTest("solrconfig-ltr.xml", "schema.xml");
     if (bulkIndex) bulkIndex();
   }

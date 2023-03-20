@@ -94,19 +94,15 @@ public class TestExternalFeatures extends TestRerankBase {
         "rq",
         "{!ltr reRankDocs=10 model=externalmodel efi.user_query='a' efi.userTitlePhrase1='b' efi.userTitlePhrase2='c'}");
 
-    final String docs0fv_dense_csv =
+    final String docs0fv_csv =
         FeatureLoggerTestUtils.toFeatureVector(
             "matchedTitle", "0.0",
             "titlePhraseMatch", "0.0",
             "titlePhrasesMatch", "0.0");
-    final String docs0fv_sparse_csv = FeatureLoggerTestUtils.toFeatureVector();
-
-    final String docs0fv_default_csv =
-        chooseDefaultFeatureVector(docs0fv_dense_csv, docs0fv_sparse_csv);
 
     // Features are query title matches, which remove stopwords, leaving blank query, so no matches
     assertJQ(
-        "/query" + query.toQueryString(), "/response/docs/[0]/fv=='" + docs0fv_default_csv + "'");
+        "/query" + query.toQueryString(), "/response/docs/[0]/fv=='" + docs0fv_csv + "'");
   }
 
   @Test
@@ -143,22 +139,17 @@ public class TestExternalFeatures extends TestRerankBase {
     query.setQuery("*:*");
     query.add("rows", "1");
 
-    final String docs0fvalias_dense_csv =
+    final String docs0fvalias_csv =
         FeatureLoggerTestUtils.toFeatureVector(
             "occurrences", "0.0",
             "originalScore", "1.0");
-    final String docs0fvalias_sparse_csv =
-        FeatureLoggerTestUtils.toFeatureVector("originalScore", "1.0");
-
-    final String docs0fvalias_default_csv =
-        chooseDefaultFeatureVector(docs0fvalias_dense_csv, docs0fvalias_sparse_csv);
 
     // Efi is explicitly not required, so we do not score the feature
     query.remove("fl");
     query.add("fl", "fvalias:[fv store=fstore3]");
     assertJQ(
         "/query" + query.toQueryString(),
-        "/response/docs/[0]/fvalias=='" + docs0fvalias_default_csv + "'");
+        "/response/docs/[0]/fvalias=='" + docs0fvalias_csv + "'");
   }
 
   @Test
@@ -168,22 +159,17 @@ public class TestExternalFeatures extends TestRerankBase {
     query.setQuery("*:*");
     query.add("rows", "1");
 
-    final String docs0fvalias_dense_csv =
+    final String docs0fvalias_csv =
         FeatureLoggerTestUtils.toFeatureVector(
             "occurrences", "0.0",
             "originalScore", "1.0");
-    final String docs0fvalias_sparse_csv =
-        FeatureLoggerTestUtils.toFeatureVector("originalScore", "1.0");
-
-    final String docs0fvalias_default_csv =
-        chooseDefaultFeatureVector(docs0fvalias_dense_csv, docs0fvalias_sparse_csv);
 
     // Efi is explicitly not required, so we do not score the feature
     query.remove("fl");
     query.add("fl", "fvalias:[fv store=fstore3]");
     assertJQ(
         "/query" + query.toQueryString(),
-        "/response/docs/[0]/fvalias=='" + docs0fvalias_default_csv + "'");
+        "/response/docs/[0]/fvalias=='" + docs0fvalias_csv + "'");
   }
 
   @Test

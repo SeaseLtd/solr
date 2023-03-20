@@ -562,9 +562,11 @@ public class LTRScoringQuery extends Query implements Accountable {
       abstract class FeatureTraversalScorer extends Scorer {
         protected int targetDoc = -1;
         protected int activeDoc = -1;
+        protected LeafReaderContext leafContext;
 
-        protected FeatureTraversalScorer(Weight weight) {
+        protected FeatureTraversalScorer(Weight weight, LeafReaderContext leafContext) {
           super(weight);
+          this.leafContext = leafContext;
         }
 
         @Override
@@ -583,7 +585,7 @@ public class LTRScoringQuery extends Query implements Accountable {
           if (activeDoc == targetDoc) {
             SolrIndexSearcher searcher = request.getSearcher();
             SolrCache<Integer, float[]> featureVectorCache = searcher.getFeatureVectorCache();
-            int docId = activeDoc + getLeafContext().docBase;
+            int docId = activeDoc + leafContext.docBase;
             float[] featureVector = featureVectorCache.get(fvCacheKey(getScoringQuery(), docId));
             if (featureVector != null) {
               for (int i = 0; i < extractedFeatureWeights.length; i++) {
@@ -616,17 +618,13 @@ public class LTRScoringQuery extends Query implements Accountable {
         }
         
         protected abstract float[] extractFeatureVector() throws IOException;
-
-        protected abstract LeafReaderContext getLeafContext();
       }
       private class SparseModelScorer extends FeatureTraversalScorer {
         private final DisiPriorityQueue subScorers;
         private final ScoringQuerySparseIterator sparseIterator;
-        private final LeafReaderContext leafContext;
-
         public SparseModelScorer(
             Weight weight, List<Feature.FeatureWeight.FeatureScorer> featureScorers, LeafReaderContext leafContext) {
-          super(weight);
+          super(weight, leafContext);
           if (featureScorers.size() <= 1) {
             throw new IllegalArgumentException("There must be at least 2 subScorers");
           }
@@ -637,12 +635,6 @@ public class LTRScoringQuery extends Query implements Accountable {
           }
 
           sparseIterator = new ScoringQuerySparseIterator(subScorers);
-          this.leafContext = leafContext;
-        }
-
-        @Override
-        protected LeafReaderContext getLeafContext() {
-          return this.leafContext;
         }
 
         @Override
@@ -716,18 +708,10 @@ public class LTRScoringQuery extends Query implements Accountable {
       private class DenseModelScorer extends FeatureTraversalScorer {
         private final List<Feature.FeatureWeight.FeatureScorer> featureScorers;
 
-        private LeafReaderContext leafContext;
-
         public DenseModelScorer(
             Weight weight, List<Feature.FeatureWeight.FeatureScorer> featureScorers, LeafReaderContext leafContext) {
-          super(weight);
+          super(weight, leafContext);
           this.featureScorers = featureScorers;
-          this.leafContext = leafContext;
-        }
-
-        @Override
-        protected LeafReaderContext getLeafContext() {
-          return this.leafContext;
         }
 
         @Override

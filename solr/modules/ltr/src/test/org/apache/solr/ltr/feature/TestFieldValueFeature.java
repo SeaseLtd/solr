@@ -284,7 +284,7 @@ public class TestFieldValueFeature extends TestRerankBase {
       query = new SolrQuery();
       query.setQuery("id:42");
       query.add("rq", "{!ltr model=" + field + "-model42 reRankDocs=4}");
-      query.add("fl", "[fv]");
+      query.add("fl", "[fv format=dense]");
       assertJQ("/query" + query.toQueryString(), "/response/numFound/==1");
       assertJQ(
           "/query" + query.toQueryString(),

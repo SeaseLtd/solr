@@ -317,13 +317,12 @@ public class RestManager {
         if ("PUT".equals(method) || "POST".equals(method)) {
           // check for typos in the feature-store or model-store endpoints (like features-store or
           // models-store)
-          if (restManager.managed.containsKey("/schema/feature-store")
-              || restManager.managed.containsKey("/schema/model-store")) {
-            if (!restManager.managed.containsKey(resourceId)) {
-              throw new SolrException(
-                  ErrorCode.BAD_REQUEST,
-                  "No REST managed resource registered for path " + resourceId);
-            }
+          if (!restManager.managed.containsKey(resourceId)
+              && (restManager.managed.containsKey("/schema/feature-store")
+                  || restManager.managed.containsKey("/schema/model-store"))) {
+            throw new SolrException(
+                ErrorCode.BAD_REQUEST,
+                "No REST managed resource registered for path " + resourceId);
           }
           // delegate create requests to the RestManager
           managedResource = restManager.endpoint;

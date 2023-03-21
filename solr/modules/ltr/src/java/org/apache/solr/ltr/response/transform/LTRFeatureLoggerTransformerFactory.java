@@ -148,7 +148,7 @@ public class LTRFeatureLoggerTransformerFactory extends TransformerFactory {
     } else {
       format = this.defaultFormat;
     }
-  
+
     return new CSVFeatureLogger(format, csvKeyValueDelimiter, csvFeatureSeparator);
   }
 
@@ -364,12 +364,12 @@ public class LTRFeatureLoggerTransformerFactory extends TransformerFactory {
       }
       if (!(rerankingQuery instanceof OriginalRankingLTRScoringQuery) || hasExplicitFeatureStore) {
         String featureVector =
-                featureLogger.printFeatureVector(
-                        LTRRescorer.extractFeaturesInfo(
-                                rerankingModelWeight,
-                                docid,
-                                (docsWereNotReranked ? score : null),
-                                leafContexts));
+            featureLogger.printFeatureVector(
+                LTRRescorer.extractFeaturesInfo(
+                    rerankingModelWeight,
+                    docid,
+                    (docsWereNotReranked ? score : null),
+                    leafContexts));
         doc.addField(name, featureVector);
       }
     }

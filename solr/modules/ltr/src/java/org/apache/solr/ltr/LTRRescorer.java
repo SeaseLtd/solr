@@ -183,9 +183,7 @@ public class LTRRescorer extends Rescorer {
     }
   }
 
-  /**
-   * Scores a single document.
-   */
+  /** Scores a single document. */
   protected static void scoreSingleHit(
       int topN,
       int docBase,

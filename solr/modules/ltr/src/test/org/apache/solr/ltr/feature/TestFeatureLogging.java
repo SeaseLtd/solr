@@ -44,35 +44,35 @@ public class TestFeatureLogging extends TestRerankBase {
     loadFeature("c3", ValueFeature.class.getName(), "test1", "{\"value\":3.0}");
     loadFeature("pop", FieldValueFeature.class.getName(), "test1", "{\"field\":\"popularity\"}");
     loadFeature(
-            "nomatch", SolrFeature.class.getName(), "test1", "{\"q\":\"{!terms f=title}foobarbat\"}");
+        "nomatch", SolrFeature.class.getName(), "test1", "{\"q\":\"{!terms f=title}foobarbat\"}");
     loadFeature(
-            "yesmatch", SolrFeature.class.getName(), "test1", "{\"q\":\"{!terms f=popularity}2\"}");
+        "yesmatch", SolrFeature.class.getName(), "test1", "{\"q\":\"{!terms f=popularity}2\"}");
 
     loadModel(
-            "sum1",
-            LinearModel.class.getName(),
-            new String[] {"c1", "c2", "c3"},
-            "test1",
-            "{\"weights\":{\"c1\":1.0,\"c2\":1.0,\"c3\":1.0}}");
+        "sum1",
+        LinearModel.class.getName(),
+        new String[] {"c1", "c2", "c3"},
+        "test1",
+        "{\"weights\":{\"c1\":1.0,\"c2\":1.0,\"c3\":1.0}}");
 
     final String docs0fv_dense_csv =
-            FeatureLoggerTestUtils.toFeatureVector(
-                    "c1", "1.0",
-                    "c2", "2.0",
-                    "c3", "3.0",
-                    "pop", "2.0",
-                    "nomatch", "0.0",
-                    "yesmatch", "1.0");
+        FeatureLoggerTestUtils.toFeatureVector(
+            "c1", "1.0",
+            "c2", "2.0",
+            "c3", "3.0",
+            "pop", "2.0",
+            "nomatch", "0.0",
+            "yesmatch", "1.0");
     final String docs0fv_sparse_csv =
-            FeatureLoggerTestUtils.toFeatureVector(
-                    "c1", "1.0",
-                    "c2", "2.0",
-                    "c3", "3.0",
-                    "pop", "2.0",
-                    "yesmatch", "1.0");
+        FeatureLoggerTestUtils.toFeatureVector(
+            "c1", "1.0",
+            "c2", "2.0",
+            "c3", "3.0",
+            "pop", "2.0",
+            "yesmatch", "1.0");
 
     final String docs0fv_default_csv =
-            chooseDefaultFeatureVector(docs0fv_dense_csv, docs0fv_sparse_csv);
+        chooseDefaultFeatureVector(docs0fv_dense_csv, docs0fv_sparse_csv);
 
     final SolrQuery query = new SolrQuery();
     query.setQuery("title:bloomberg");
@@ -83,8 +83,8 @@ public class TestFeatureLogging extends TestRerankBase {
 
     restTestHarness.query("/query" + query.toQueryString());
     assertJQ(
-            "/query" + query.toQueryString(),
-            "/response/docs/[0]/=={'id':'7', 'popularity':2,  '[fv]':'" + docs0fv_default_csv + "'}");
+        "/query" + query.toQueryString(),
+        "/response/docs/[0]/=={'id':'7', 'popularity':2,  '[fv]':'" + docs0fv_default_csv + "'}");
 
     query.remove("fl");
     query.add("fl", "[fv]");
@@ -93,25 +93,25 @@ public class TestFeatureLogging extends TestRerankBase {
 
     restTestHarness.query("/query" + query.toQueryString());
     assertJQ(
-            "/query" + query.toQueryString(),
-            "/response/docs/[0]/=={'[fv]':'" + docs0fv_default_csv + "'}");
+        "/query" + query.toQueryString(),
+        "/response/docs/[0]/=={'[fv]':'" + docs0fv_default_csv + "'}");
   }
 
   @Test
   public void testDefaultStoreFeatureExtraction() throws Exception {
     loadFeature(
-            "defaultf1",
-            ValueFeature.class.getName(),
-            FeatureStore.DEFAULT_FEATURE_STORE_NAME,
-            "{\"value\":1.0}");
+        "defaultf1",
+        ValueFeature.class.getName(),
+        FeatureStore.DEFAULT_FEATURE_STORE_NAME,
+        "{\"value\":1.0}");
     loadFeature("store8f1", ValueFeature.class.getName(), "store8", "{\"value\":2.0}");
     loadFeature("store9f1", ValueFeature.class.getName(), "store9", "{\"value\":3.0}");
     loadModel(
-            "store9m1",
-            LinearModel.class.getName(),
-            new String[] {"store9f1"},
-            "store9",
-            "{\"weights\":{\"store9f1\":1.0}}");
+        "store9m1",
+        LinearModel.class.getName(),
+        new String[] {"store9f1"},
+        "store9",
+        "{\"weights\":{\"store9f1\":1.0}}");
 
     final SolrQuery query = new SolrQuery();
     query.setQuery("id:7");
@@ -120,56 +120,65 @@ public class TestFeatureLogging extends TestRerankBase {
     // No store specified, use default store for extraction
     query.add("fl", "fv:[fv]");
     assertJQ(
-            "/query" + query.toQueryString(),
-            "/response/docs/[0]/=={'fv':'"
-                    + FeatureLoggerTestUtils.toFeatureVector("defaultf1", "1.0")
-                    + "'}");
+        "/query" + query.toQueryString(),
+        "/response/docs/[0]/=={'fv':'"
+            + FeatureLoggerTestUtils.toFeatureVector("defaultf1", "1.0")
+            + "'}");
 
     // Store specified, use store for extraction
     query.remove("fl");
     query.add("fl", "fv:[fv store=store8]");
     assertJQ(
-            "/query" + query.toQueryString(),
-            "/response/docs/[0]/=={'fv':'"
-                    + FeatureLoggerTestUtils.toFeatureVector("store8f1", "2.0")
-                    + "'}");
+        "/query" + query.toQueryString(),
+        "/response/docs/[0]/=={'fv':'"
+            + FeatureLoggerTestUtils.toFeatureVector("store8f1", "2.0")
+            + "'}");
 
     // Store specified + model specified, use store for extraction
     query.add("rq", "{!ltr reRankDocs=3 model=store9m1}");
     assertJQ(
-            "/query" + query.toQueryString(),
-            "/response/docs/[0]/=={'fv':'"
-                    + FeatureLoggerTestUtils.toFeatureVector("store8f1", "2.0")
-                    + "'}");
+        "/query" + query.toQueryString(),
+        "/response/docs/[0]/=={'fv':'"
+            + FeatureLoggerTestUtils.toFeatureVector("store8f1", "2.0")
+            + "'}");
 
     // No store specified + model specified, use model store for extraction
     query.remove("fl");
     query.add("fl", "fv:[fv]");
     assertJQ(
-            "/query" + query.toQueryString(),
-            "/response/docs/[0]/=={'fv':'"
-                    + FeatureLoggerTestUtils.toFeatureVector("store9f1", "3.0")
-                    + "'}");
+        "/query" + query.toQueryString(),
+        "/response/docs/[0]/=={'fv':'"
+            + FeatureLoggerTestUtils.toFeatureVector("store9f1", "3.0")
+            + "'}");
   }
 
   @Test
   public void testDefaultNaNFeatureExtraction() throws Exception {
-    loadFeature("f1", ValueFeature.class.getName(), "storewithNaN", "{\"value\":0.0, \"defaultValue\": \"NaN\"}");
+    loadFeature(
+        "f1",
+        ValueFeature.class.getName(),
+        "storewithNaN",
+        "{\"value\":0.0, \"defaultValue\": \"NaN\"}");
     loadFeature("f2", ValueFeature.class.getName(), "storewithNaN", "{\"value\":2.0}");
     loadFeature("f3", ValueFeature.class.getName(), "storewithNaN", "{\"value\":0.0}");
-    loadFeature("f4", ValueFeature.class.getName(), "storewithNaN", "{\"value\":NaN, \"defaultValue\": \"NaN\"}");
+    loadFeature(
+        "f4",
+        ValueFeature.class.getName(),
+        "storewithNaN",
+        "{\"value\":NaN, \"defaultValue\": \"NaN\"}");
 
     final String docs0fv_dense_csv =
-            FeatureLoggerTestUtils.toFeatureVector(
-                    "f1", "0.0",
-                    "f2", "2.0",
-                    "f3", "0.0",
-                    "f4", "NaN");
-    final String docs0fv_sparse_csv = FeatureLoggerTestUtils.toFeatureVector(
+        FeatureLoggerTestUtils.toFeatureVector(
+            "f1", "0.0",
+            "f2", "2.0",
+            "f3", "0.0",
+            "f4", "NaN");
+    final String docs0fv_sparse_csv =
+        FeatureLoggerTestUtils.toFeatureVector(
             "f1", "0.0",
             "f2", "2.0");
     final String docs0fv_default_csv =
-            chooseDefaultFeatureVector(docs0fv_dense_csv, docs0fv_sparse_csv);
+        chooseDefaultFeatureVector(docs0fv_dense_csv, docs0fv_sparse_csv);
 
     // Test default feature format
     final SolrQuery query = new SolrQuery();
@@ -177,28 +186,22 @@ public class TestFeatureLogging extends TestRerankBase {
     query.add("rows", "1");
     query.add("fl", "fv:[fv store=storewithNaN]");
     assertJQ(
-            "/query" + query.toQueryString(),
-            "/response/docs/[0]/=={'fv':'"
-                    + docs0fv_default_csv
-                    + "'}");
+        "/query" + query.toQueryString(),
+        "/response/docs/[0]/=={'fv':'" + docs0fv_default_csv + "'}");
 
     // Test dense feature format
     query.remove("fl");
     query.add("fl", "fv:[fv store=storewithNaN format=dense]");
     assertJQ(
-            "/query" + query.toQueryString(),
-            "/response/docs/[0]/=={'fv':'"
-                    + docs0fv_dense_csv
-                    + "'}");
+        "/query" + query.toQueryString(),
+        "/response/docs/[0]/=={'fv':'" + docs0fv_dense_csv + "'}");
 
     // Test sparse feature format
     query.remove("fl");
     query.add("fl", "fv:[fv store=storewithNaN format=sparse]");
     assertJQ(
-            "/query" + query.toQueryString(),
-            "/response/docs/[0]/=={'fv':'"
-                    + docs0fv_sparse_csv
-                    + "'}");
+        "/query" + query.toQueryString(),
+        "/response/docs/[0]/=={'fv':'" + docs0fv_sparse_csv + "'}");
   }
 
   @Test
@@ -207,14 +210,14 @@ public class TestFeatureLogging extends TestRerankBase {
     loadFeature("c2", ValueFeature.class.getName(), "testgroup", "{\"value\":2.0}");
     loadFeature("c3", ValueFeature.class.getName(), "testgroup", "{\"value\":3.0}");
     loadFeature(
-            "pop", FieldValueFeature.class.getName(), "testgroup", "{\"field\":\"popularity\"}");
+        "pop", FieldValueFeature.class.getName(), "testgroup", "{\"field\":\"popularity\"}");
 
     loadModel(
-            "sumgroup",
-            LinearModel.class.getName(),
-            new String[] {"c1", "c2", "c3"},
-            "testgroup",
-            "{\"weights\":{\"c1\":1.0,\"c2\":1.0,\"c3\":1.0}}");
+        "sumgroup",
+        LinearModel.class.getName(),
+        new String[] {"c1", "c2", "c3"},
+        "testgroup",
+        "{\"weights\":{\"c1\":1.0,\"c2\":1.0,\"c3\":1.0}}");
 
     final SolrQuery query = new SolrQuery();
     query.setQuery("title:bloomberg");
@@ -230,44 +233,44 @@ public class TestFeatureLogging extends TestRerankBase {
     query.add("rq", "{!ltr reRankDocs=3 model=sumgroup}");
 
     final String docs0fv_csv =
-            FeatureLoggerTestUtils.toFeatureVector(
-                    "c1", "1.0",
-                    "c2", "2.0",
-                    "c3", "3.0",
-                    "pop", "5.0");
+        FeatureLoggerTestUtils.toFeatureVector(
+            "c1", "1.0",
+            "c2", "2.0",
+            "c3", "3.0",
+            "pop", "5.0");
 
     restTestHarness.query("/query" + query.toQueryString());
     assertJQ(
-            "/query" + query.toQueryString(),
-            "/grouped/title/groups/[0]/doclist/docs/[0]/=={'fv':'" + docs0fv_csv + "'}");
+        "/query" + query.toQueryString(),
+        "/grouped/title/groups/[0]/doclist/docs/[0]/=={'fv':'" + docs0fv_csv + "'}");
   }
 
   @Test
   public void testSparseDenseFeatures() throws Exception {
     loadFeature(
-            "match", SolrFeature.class.getName(), "test4", "{\"q\":\"{!terms f=title}different\"}");
+        "match", SolrFeature.class.getName(), "test4", "{\"q\":\"{!terms f=title}different\"}");
     loadFeature("c4", ValueFeature.class.getName(), "test4", "{\"value\":1.0}");
 
     loadModel(
-            "sum4",
-            LinearModel.class.getName(),
-            new String[] {"match"},
-            "test4",
-            "{\"weights\":{\"match\":1.0}}");
+        "sum4",
+        LinearModel.class.getName(),
+        new String[] {"match"},
+        "test4",
+        "{\"weights\":{\"match\":1.0}}");
 
     final String docs0fv_sparse_csv =
-            FeatureLoggerTestUtils.toFeatureVector("match", "1.0", "c4", "1.0");
+        FeatureLoggerTestUtils.toFeatureVector("match", "1.0", "c4", "1.0");
     final String docs1fv_sparse_csv = FeatureLoggerTestUtils.toFeatureVector("c4", "1.0");
 
     final String docs0fv_dense_csv =
-            FeatureLoggerTestUtils.toFeatureVector("match", "1.0", "c4", "1.0");
+        FeatureLoggerTestUtils.toFeatureVector("match", "1.0", "c4", "1.0");
     final String docs1fv_dense_csv =
-            FeatureLoggerTestUtils.toFeatureVector("match", "0.0", "c4", "1.0");
+        FeatureLoggerTestUtils.toFeatureVector("match", "0.0", "c4", "1.0");
 
     final String docs0fv_default_csv =
-            chooseDefaultFeatureVector(docs0fv_dense_csv, docs0fv_sparse_csv);
+        chooseDefaultFeatureVector(docs0fv_dense_csv, docs0fv_sparse_csv);
     final String docs1fv_default_csv =
-            chooseDefaultFeatureVector(docs1fv_dense_csv, docs1fv_sparse_csv);
+        chooseDefaultFeatureVector(docs1fv_dense_csv, docs1fv_sparse_csv);
 
     final SolrQuery query = new SolrQuery();
     query.setQuery("title:bloomberg");
@@ -278,24 +281,24 @@ public class TestFeatureLogging extends TestRerankBase {
     query.remove("fl");
     query.add("fl", "*,score,fv:[fv store=test4]");
     assertJQ(
-            "/query" + query.toQueryString(), "/response/docs/[0]/fv/=='" + docs0fv_default_csv + "'");
+        "/query" + query.toQueryString(), "/response/docs/[0]/fv/=='" + docs0fv_default_csv + "'");
     assertJQ(
-            "/query" + query.toQueryString(), "/response/docs/[1]/fv/=='" + docs1fv_default_csv + "'");
+        "/query" + query.toQueryString(), "/response/docs/[1]/fv/=='" + docs1fv_default_csv + "'");
 
     // csv - sparse feature format check
     query.remove("fl");
     query.add("fl", "*,score,fv:[fv store=test4 format=sparse]");
     assertJQ(
-            "/query" + query.toQueryString(), "/response/docs/[0]/fv/=='" + docs0fv_sparse_csv + "'");
+        "/query" + query.toQueryString(), "/response/docs/[0]/fv/=='" + docs0fv_sparse_csv + "'");
     assertJQ(
-            "/query" + query.toQueryString(), "/response/docs/[1]/fv/=='" + docs1fv_sparse_csv + "'");
+        "/query" + query.toQueryString(), "/response/docs/[1]/fv/=='" + docs1fv_sparse_csv + "'");
 
     // csv - dense feature format check
     query.remove("fl");
     query.add("fl", "*,score,fv:[fv store=test4 format=dense]");
     assertJQ(
-            "/query" + query.toQueryString(), "/response/docs/[0]/fv/=='" + docs0fv_dense_csv + "'");
+        "/query" + query.toQueryString(), "/response/docs/[0]/fv/=='" + docs0fv_dense_csv + "'");
     assertJQ(
-            "/query" + query.toQueryString(), "/response/docs/[1]/fv/=='" + docs1fv_dense_csv + "'");
+        "/query" + query.toQueryString(), "/response/docs/[1]/fv/=='" + docs1fv_dense_csv + "'");
   }
 }

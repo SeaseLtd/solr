@@ -516,7 +516,10 @@ public class LTRScoringQuery extends Query implements Accountable {
         return docInfo;
       }
 
-      public ModelScorer(Weight weight, List<Feature.FeatureWeight.FeatureScorer> featureScorers, LeafReaderContext leafContext) {
+      public ModelScorer(
+          Weight weight,
+          List<Feature.FeatureWeight.FeatureScorer> featureScorers,
+          LeafReaderContext leafContext) {
         super(weight);
         docInfo = new DocInfo();
         for (final Feature.FeatureWeight.FeatureScorer subScorer : featureScorers) {
@@ -555,7 +558,7 @@ public class LTRScoringQuery extends Query implements Accountable {
         return featureTraversalScorer.iterator();
       }
 
-      private LTRScoringQuery getScoringQuery(){
+      private LTRScoringQuery getScoringQuery() {
         return LTRScoringQuery.this;
       }
 
@@ -591,7 +594,8 @@ public class LTRScoringQuery extends Query implements Accountable {
               for (int i = 0; i < extractedFeatureWeights.length; i++) {
                 int featureId = extractedFeatureWeights[i].getIndex();
                 float featureValue = featureVector[featureId];
-                if(!Float.isNaN(featureValue) && featureValue != extractedFeatureWeights[i].getDefaultValue()){
+                if (!Float.isNaN(featureValue)
+                    && featureValue != extractedFeatureWeights[i].getDefaultValue()) {
                   featuresInfo[featureId].setValue(featureValue);
                   featuresInfo[featureId].setUsed(true);
                 }
@@ -607,23 +611,27 @@ public class LTRScoringQuery extends Query implements Accountable {
           return scoringQuery.hashCode() + (31 * docid);
         }
 
-        protected float[] initFeatureVector(FeatureInfo[] featuresInfos){
+        protected float[] initFeatureVector(FeatureInfo[] featuresInfos) {
           float[] featureVector = new float[featuresInfo.length];
-          for(int i=0; i<featuresInfos.length; i++){
-            if(featuresInfos[i] != null) {
+          for (int i = 0; i < featuresInfos.length; i++) {
+            if (featuresInfos[i] != null) {
               featureVector[i] = featuresInfos[i].getValue();
             }
           }
           return featureVector;
         }
-        
+
         protected abstract float[] extractFeatureVector() throws IOException;
       }
+
       private class SparseModelScorer extends FeatureTraversalScorer {
         private final DisiPriorityQueue subScorers;
         private final ScoringQuerySparseIterator sparseIterator;
+
         public SparseModelScorer(
-            Weight weight, List<Feature.FeatureWeight.FeatureScorer> featureScorers, LeafReaderContext leafContext) {
+            Weight weight,
+            List<Feature.FeatureWeight.FeatureScorer> featureScorers,
+            LeafReaderContext leafContext) {
           super(weight, leafContext);
           if (featureScorers.size() <= 1) {
             throw new IllegalArgumentException("There must be at least 2 subScorers");
@@ -651,7 +659,7 @@ public class LTRScoringQuery extends Query implements Accountable {
             Feature.FeatureWeight feature = (Feature.FeatureWeight) subScorer.getWeight();
             final int featureId = feature.getIndex();
             float featureValue = subScorer.score();
-            if(!Float.isNaN(featureValue) && featureValue != feature.getDefaultValue()){
+            if (!Float.isNaN(featureValue) && featureValue != feature.getDefaultValue()) {
               featuresInfo[featureId].setValue(featureValue);
               featuresInfo[featureId].setUsed(true);
               featureVector[featureId] = featureValue;
@@ -710,7 +718,9 @@ public class LTRScoringQuery extends Query implements Accountable {
         private final List<Feature.FeatureWeight.FeatureScorer> featureScorers;
 
         public DenseModelScorer(
-            Weight weight, List<Feature.FeatureWeight.FeatureScorer> featureScorers, LeafReaderContext leafContext) {
+            Weight weight,
+            List<Feature.FeatureWeight.FeatureScorer> featureScorers,
+            LeafReaderContext leafContext) {
           super(weight, leafContext);
           this.featureScorers = featureScorers;
         }
@@ -729,7 +739,7 @@ public class LTRScoringQuery extends Query implements Accountable {
               Feature.FeatureWeight scFW = (Feature.FeatureWeight) scorer.getWeight();
               final int featureId = scFW.getIndex();
               float featureValue = scorer.score();
-              if(!Float.isNaN(featureValue) && featureValue != scFW.getDefaultValue()){
+              if (!Float.isNaN(featureValue) && featureValue != scFW.getDefaultValue()) {
                 featuresInfo[featureId].setValue(featureValue);
                 featuresInfo[featureId].setUsed(true);
                 featureVector[featureId] = featureValue;

@@ -387,9 +387,9 @@ public class SolrIndexSearcher extends IndexSearcher implements Closeable, SolrI
               : solrConfig.queryResultCacheConfig.newInstance();
       if (queryResultCache != null) clist.add(queryResultCache);
       featureVectorCache =
-              solrConfig.featureVectorCacheConfig == null
-                      ? null
-                      : solrConfig.featureVectorCacheConfig.newInstance();
+          solrConfig.featureVectorCacheConfig == null
+              ? null
+              : solrConfig.featureVectorCacheConfig.newInstance();
       if (featureVectorCache != null) clist.add(featureVectorCache);
       SolrCache<Integer, Document> documentCache = docFetcher.getDocumentCache();
       if (documentCache != null) clist.add(documentCache);
@@ -676,9 +676,8 @@ public class SolrIndexSearcher extends IndexSearcher implements Closeable, SolrI
     }
 
     if (solrConfig.featureVectorCacheConfig != null
-            && solrConfig.featureVectorCacheConfig.getRegenerator() == null) {
-      solrConfig.featureVectorCacheConfig.setRegenerator(
-              new NoOpRegenerator());
+        && solrConfig.featureVectorCacheConfig.getRegenerator() == null) {
+      solrConfig.featureVectorCacheConfig.setRegenerator(new NoOpRegenerator());
     }
 
     if (solrConfig.queryResultCacheConfig != null

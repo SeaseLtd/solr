@@ -321,7 +321,8 @@ public class SolrConfig implements MapSerializable {
           CacheConfig.getConfig(
               this, get("query").get("queryResultCache"), "query/queryResultCache");
       featureVectorCacheConfig =
-              CacheConfig.getConfig(this, get("query").get("featureVectorCache"), "query/featureVectorCache");
+          CacheConfig.getConfig(
+              this, get("query").get("featureVectorCache"), "query/featureVectorCache");
       documentCacheConfig =
           CacheConfig.getConfig(this, get("query").get("documentCache"), "query/documentCache");
       CacheConfig conf =
@@ -1074,7 +1075,12 @@ public class SolrConfig implements MapSerializable {
     }
 
     addCacheConfig(
-        m, filterCacheConfig, queryResultCacheConfig, documentCacheConfig, fieldValueCacheConfig, featureVectorCacheConfig);
+        m,
+        filterCacheConfig,
+        queryResultCacheConfig,
+        documentCacheConfig,
+        fieldValueCacheConfig,
+        featureVectorCacheConfig);
     m = new LinkedHashMap<>();
     result.put("requestDispatcher", m);
     m.put("handleSelect", handleSelect);

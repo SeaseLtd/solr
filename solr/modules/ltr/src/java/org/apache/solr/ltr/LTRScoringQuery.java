@@ -651,10 +651,11 @@ public class LTRScoringQuery extends Query implements Accountable {
             Feature.FeatureWeight feature = (Feature.FeatureWeight) subScorer.getWeight();
             final int featureId = feature.getIndex();
             float featureValue = subScorer.score();
-            featuresInfo[featureId].setValue(featureValue);
-            featuresInfo[featureId].setUsed(true);
-            featureVector[featureId] = featureValue;
-
+            if(!Float.isNaN(featureValue) && featureValue != feature.getDefaultValue()){
+              featuresInfo[featureId].setValue(featureValue);
+              featuresInfo[featureId].setUsed(true);
+              featureVector[featureId] = featureValue;
+            }
           }
           return featureVector;
         }
@@ -728,9 +729,11 @@ public class LTRScoringQuery extends Query implements Accountable {
               Feature.FeatureWeight scFW = (Feature.FeatureWeight) scorer.getWeight();
               final int featureId = scFW.getIndex();
               float featureValue = scorer.score();
-              featuresInfo[featureId].setValue(featureValue);
-              featuresInfo[featureId].setUsed(true);
-              featureVector[featureId] = featureValue;
+              if(!Float.isNaN(featureValue) && featureValue != scFW.getDefaultValue()){
+                featuresInfo[featureId].setValue(featureValue);
+                featuresInfo[featureId].setUsed(true);
+                featureVector[featureId] = featureValue;
+              }
             }
           }
           return featureVector;

@@ -127,7 +127,9 @@ public class LinearModel extends LTRScoringModel {
   public float score(float[] modelFeatureValuesNormalized) {
     float score = 0;
     for (int i = 0; i < modelFeatureValuesNormalized.length; ++i) {
-      score += modelFeatureValuesNormalized[i] * featureToWeight[i];
+      if (!Float.isNaN(modelFeatureValuesNormalized[i])) {
+        score += modelFeatureValuesNormalized[i] * featureToWeight[i];
+      }
     }
     return score;
   }

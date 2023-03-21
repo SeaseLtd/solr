@@ -153,6 +153,55 @@ public class TestFeatureLogging extends TestRerankBase {
   }
 
   @Test
+  public void testDefaultNaNFeatureExtraction() throws Exception {
+    loadFeature("f1", ValueFeature.class.getName(), "storewithNaN", "{\"value\":0.0, \"defaultValue\": \"NaN\"}");
+    loadFeature("f2", ValueFeature.class.getName(), "storewithNaN", "{\"value\":2.0}");
+    loadFeature("f3", ValueFeature.class.getName(), "storewithNaN", "{\"value\":0.0}");
+    loadFeature("f4", ValueFeature.class.getName(), "storewithNaN", "{\"value\":NaN, \"defaultValue\": \"NaN\"}");
+
+    final String docs0fv_dense_csv =
+            FeatureLoggerTestUtils.toFeatureVector(
+                    "f1", "0.0",
+                    "f2", "2.0",
+                    "f3", "0.0",
+                    "f4", "NaN");
+    final String docs0fv_sparse_csv = FeatureLoggerTestUtils.toFeatureVector(
+            "f1", "0.0",
+            "f2", "2.0");
+    final String docs0fv_default_csv =
+            chooseDefaultFeatureVector(docs0fv_dense_csv, docs0fv_sparse_csv);
+
+    // Test default feature format
+    final SolrQuery query = new SolrQuery();
+    query.setQuery("id:7");
+    query.add("rows", "1");
+    query.add("fl", "fv:[fv store=storewithNaN]");
+    assertJQ(
+            "/query" + query.toQueryString(),
+            "/response/docs/[0]/=={'fv':'"
+                    + docs0fv_default_csv
+                    + "'}");
+
+    // Test dense feature format
+    query.remove("fl");
+    query.add("fl", "fv:[fv store=storewithNaN format=dense]");
+    assertJQ(
+            "/query" + query.toQueryString(),
+            "/response/docs/[0]/=={'fv':'"
+                    + docs0fv_dense_csv
+                    + "'}");
+
+    // Test sparse feature format
+    query.remove("fl");
+    query.add("fl", "fv:[fv store=storewithNaN format=sparse]");
+    assertJQ(
+            "/query" + query.toQueryString(),
+            "/response/docs/[0]/=={'fv':'"
+                    + docs0fv_sparse_csv
+                    + "'}");
+  }
+
+  @Test
   public void testGeneratedGroup() throws Exception {
     loadFeature("c1", ValueFeature.class.getName(), "testgroup", "{\"value\":1.0}");
     loadFeature("c2", ValueFeature.class.getName(), "testgroup", "{\"value\":2.0}");

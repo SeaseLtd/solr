@@ -204,11 +204,9 @@ public class TestModelManager extends TestRerankBase {
   }
 
   @Test
-  public void testRestManagerEndpointsWithTypo() throws Exception {
+  public void testFeatureStoreEndpointWithTypo_GETMethod() throws Exception {
     String featureStoreEndpointWithTypo = "/schema/features-store";
     String featureStoreEndpointWithTypoAndStoreName = "/schema/features-store/store1";
-    String modelStoreEndpointWithTypo = "/schema/models-store";
-    String modelStoreEndpointWithTypoAndModelName = "/schema/models-store/model1";
 
     assertJQ(
         featureStoreEndpointWithTypo,
@@ -220,6 +218,13 @@ public class TestModelManager extends TestRerankBase {
         "/error/msg=='No REST managed resource registered for path "
             + featureStoreEndpointWithTypoAndStoreName
             + "'");
+  }
+
+  @Test
+  public void testModelStoreEndpointWithTypo_GETMethod() throws Exception {
+    String modelStoreEndpointWithTypo = "/schema/models-store";
+    String modelStoreEndpointWithTypoAndModelName = "/schema/models-store/model1";
+
     assertJQ(
         modelStoreEndpointWithTypo,
         "/error/msg=='No REST managed resource registered for path "
@@ -230,6 +235,11 @@ public class TestModelManager extends TestRerankBase {
         "/error/msg=='No REST managed resource registered for path "
             + modelStoreEndpointWithTypoAndModelName
             + "'");
+  }
+
+  @Test
+  public void testFeatureStoreEndpointWithTypo_PUTMethod() throws Exception {
+    String featureStoreEndpointWithTypo = "/schema/features-store";
 
     assertJPut(
         featureStoreEndpointWithTypo,
@@ -237,6 +247,11 @@ public class TestModelManager extends TestRerankBase {
         "/error/msg=='No REST managed resource registered for path "
             + featureStoreEndpointWithTypo
             + "'");
+  }
+
+  @Test
+  public void testModelStoreEndpointWithTypo_PUTMethod() throws Exception {
+    String modelStoreEndpointWithTypo = "/schema/models-store";
 
     assertJPut(
         modelStoreEndpointWithTypo,
@@ -244,12 +259,23 @@ public class TestModelManager extends TestRerankBase {
         "/error/msg=='No REST managed resource registered for path "
             + modelStoreEndpointWithTypo
             + "'");
+  }
+
+  @Test
+  public void testFeatureStoreEndpointWithTypo_DELETEMethod() throws Exception {
+    String featureStoreEndpointWithTypoAndStoreName = "/schema/features-store/store1";
 
     assertJDelete(
         featureStoreEndpointWithTypoAndStoreName,
         "/error/msg=='No REST managed resource registered for path "
             + featureStoreEndpointWithTypoAndStoreName
             + "'");
+  }
+
+  @Test
+  public void testModelStoreEndpointWithTypo_DELETEMethod() throws Exception {
+    String modelStoreEndpointWithTypoAndModelName = "/schema/models-store/model1";
+
     assertJDelete(
         modelStoreEndpointWithTypoAndModelName,
         "/error/msg=='No REST managed resource registered for path "

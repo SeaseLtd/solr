@@ -558,10 +558,6 @@ public class LTRScoringQuery extends Query implements Accountable {
         return featureTraversalScorer.iterator();
       }
 
-      private LTRScoringQuery getScoringQuery() {
-        return LTRScoringQuery.this;
-      }
-
       abstract class FeatureTraversalScorer extends Scorer {
         protected int targetDoc = -1;
         protected int activeDoc = -1;
@@ -589,7 +585,7 @@ public class LTRScoringQuery extends Query implements Accountable {
             SolrIndexSearcher searcher = request.getSearcher();
             SolrCache<Integer, float[]> featureVectorCache = searcher.getFeatureVectorCache();
             int docId = activeDoc + leafContext.docBase;
-            float[] featureVector = featureVectorCache.get(fvCacheKey(getScoringQuery(), docId));
+            float[] featureVector = featureVectorCache.get(fvCacheKey(docId));
             if (featureVector != null) {
               for (int i = 0; i < extractedFeatureWeights.length; i++) {
                 int featureId = extractedFeatureWeights[i].getIndex();
@@ -602,13 +598,27 @@ public class LTRScoringQuery extends Query implements Accountable {
               }
             } else {
               featureVector = extractFeatureVector();
-              featureVectorCache.put(fvCacheKey(getScoringQuery(), docId), featureVector);
+              featureVectorCache.put(fvCacheKey(docId), featureVector);
             }
           }
         }
 
-        private int fvCacheKey(LTRScoringQuery scoringQuery, int docid) {
-          return scoringQuery.hashCode() + (31 * docid);
+        private int fvCacheKey(int docId) {
+          final int prime = 31;
+          int result = classHash();
+          result = (prime * result) + ((ltrScoringModel == null) ? 0 : ltrScoringModel.getFeatures().hashCode());
+          if (efi == null) {
+            result = (prime * result) + 0;
+          } else {
+            for (final Map.Entry<String, String[]> entry : efi.entrySet()) {
+              final String key = entry.getKey();
+              final String[] values = entry.getValue();
+              result = (prime * result) + key.hashCode();
+              result = (prime * result) + Arrays.hashCode(values);
+            }
+          }
+          result = (prime * result) + this.toString().hashCode();
+          return result + (31 * docId);
         }
 
         protected float[] initFeatureVector(FeatureInfo[] featuresInfos) {

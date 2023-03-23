@@ -145,6 +145,7 @@ public class LTRScoringQuery extends Query implements Accountable {
     final int prime = 31;
     int result = classHash();
     result = (prime * result) + ((ltrScoringModel == null) ? 0 : ltrScoringModel.getFeatureStoreName().hashCode());
+    result = (prime * result) + ((ltrScoringModel == null) ? 0 : ltrScoringModel.getFeatures().hashCode());
     if (efi == null) {
       result = (prime * result) + 0;
     } else {
@@ -628,7 +629,7 @@ public class LTRScoringQuery extends Query implements Accountable {
         }
 
         private int fvCacheKey(LTRScoringQuery scoringQuery, int docId) {
-          return scoringQuery.fvQueryKey + (31 * docId);
+          return (31 *scoringQuery.fvQueryKey) + docId;
         }
 
         protected float[] initFeatureVector(FeatureInfo[] featuresInfos) {

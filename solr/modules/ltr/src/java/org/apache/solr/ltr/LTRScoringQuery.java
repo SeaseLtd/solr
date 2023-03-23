@@ -629,7 +629,7 @@ public class LTRScoringQuery extends Query implements Accountable {
         }
 
         private int fvCacheKey(LTRScoringQuery scoringQuery, int docId) {
-          return (31 *scoringQuery.fvQueryKey) + docId;
+          return (31 * scoringQuery.fvQueryKey) + docId;
         }
 
         protected float[] initFeatureVector(FeatureInfo[] featuresInfos) {

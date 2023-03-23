@@ -144,7 +144,7 @@ public class LTRScoringQuery extends Query implements Accountable {
   public int computeFvQueryKey() {
     final int prime = 31;
     int result = classHash();
-    result = (prime * result) + ((ltrScoringModel == null) ? 0 : ltrScoringModel.getFeatures().hashCode());
+    result = (prime * result) + ((ltrScoringModel == null) ? 0 : ltrScoringModel.getFeatureStoreName().hashCode());
     if (efi == null) {
       result = (prime * result) + 0;
     } else {

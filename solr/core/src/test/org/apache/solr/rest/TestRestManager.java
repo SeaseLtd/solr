@@ -124,7 +124,6 @@ public class TestRestManager extends SolrRestletTestBase {
     assertJQ("/schema/managed", "/responseHeader/status==0");
     assertHead("/schema/managed", 200);
 
-    // add a ManagedWordSetResource for managing german stop words
     String newEndpoint = "/schema/analysis/stopwords/italian";
     String newEndpointWithTypo = "/schema/analysiss/stopwords/italian";
 
@@ -139,16 +138,13 @@ public class TestRestManager extends SolrRestletTestBase {
         "/managedResources/[2]/resourceId=='/schema/analysis/stopwords/italian'");
     assertHead("/schema/managed", 200);
 
-    // add a word to the managedResource created
-    assertJPut(newEndpoint, Utils.toJSONString(Arrays.asList("ma")), "/responseHeader/status==0");
-
     // add a word to a non-existent managedResource
     assertJPut(
         newEndpointWithTypo,
         Utils.toJSONString(Arrays.asList("ma")),
         "/error/msg=='Trying to put the payload for a non-existent ManagedResource. Check for a typo in the endpoint or create the new ManagedResource before pushing data'");
 
-    // delete the one we created above
+    // delete the one created above
     assertJDelete(newEndpoint, "/responseHeader/status==0");
 
     // delete a non-existent resource

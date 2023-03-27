@@ -204,7 +204,7 @@ public class TestModelManager extends TestRerankBase {
   }
 
   @Test
-  public void testFeatureStoreEndpointWithTypo_GETMethod() throws Exception {
+  public void restManagerEndpointsWithTypo_GETFeatureStore_shouldThrowException() throws Exception {
     String featureStoreEndpointWithTypo = "/schema/features-store";
     String featureStoreEndpointWithTypoAndStoreName = "/schema/features-store/store1";
 
@@ -221,7 +221,7 @@ public class TestModelManager extends TestRerankBase {
   }
 
   @Test
-  public void testModelStoreEndpointWithTypo_GETMethod() throws Exception {
+  public void restManagerEndpointsWithTypo_GETModelStore_shouldThrowException() throws Exception {
     String modelStoreEndpointWithTypo = "/schema/models-store";
     String modelStoreEndpointWithTypoAndModelName = "/schema/models-store/model1";
 
@@ -238,31 +238,45 @@ public class TestModelManager extends TestRerankBase {
   }
 
   @Test
-  public void testFeatureStoreEndpointWithTypo_PUTMethod() throws Exception {
+  public void restManagerEndpointsWithTypo_PUTFeatureStore_shouldThrowException() throws Exception {
     String featureStoreEndpointWithTypo = "/schema/features-store";
 
+    final String valueFeatureClassName = ValueFeature.class.getName();
+
+    // Add features
+    final String multipleFeatures =
+        "[{\"name\": \"test1\", \"class\": \""
+            + valueFeatureClassName
+            + "\", \"params\": {\"value\": 1} }"
+            + ",{\"name\": \"test2\", \"class\": \""
+            + valueFeatureClassName
+            + "\", \"params\": {\"value\": 2} } ]";
     assertJPut(
         featureStoreEndpointWithTypo,
-        json("{ 'class':'solr.ManagedFeatureStore' }"),
-        "/error/msg=='No REST managed resource registered for path "
-            + featureStoreEndpointWithTypo
-            + "'");
+        multipleFeatures,
+        "/error/msg=='Trying to put the payload for a non-existent ManagedResource. Check for a typo in the endpoint or create the new ManagedResource before pushing data'");
   }
 
   @Test
-  public void testModelStoreEndpointWithTypo_PUTMethod() throws Exception {
+  public void restManagerEndpointsWithTypo_PUTModelStore_shouldThrowException() throws Exception {
     String modelStoreEndpointWithTypo = "/schema/models-store";
+
+    final String linearModelClassName = LinearModel.class.getName();
+
+    String model =
+        "{ \"name\":\"testModel1\", \"class\":\""
+            + linearModelClassName
+            + "\", \"features\":[{\"name\":\"test1\"}, {\"name\":\"test2\"}],\"params\":{\"weights\":{\"test1\":1.5,\"test2\":2.0}} }";
 
     assertJPut(
         modelStoreEndpointWithTypo,
-        json("{ 'class':'solr.ManagedModelStore' }"),
-        "/error/msg=='No REST managed resource registered for path "
-            + modelStoreEndpointWithTypo
-            + "'");
+        model,
+        "/error/msg=='Trying to put the payload for a non-existent ManagedResource. Check for a typo in the endpoint or create the new ManagedResource before pushing data'");
   }
 
   @Test
-  public void testFeatureStoreEndpointWithTypo_DELETEMethod() throws Exception {
+  public void restManagerEndpointsWithTypo_DELETEFeatureStore_shouldThrowException()
+      throws Exception {
     String featureStoreEndpointWithTypoAndStoreName = "/schema/features-store/store1";
 
     assertJDelete(
@@ -273,7 +287,8 @@ public class TestModelManager extends TestRerankBase {
   }
 
   @Test
-  public void testModelStoreEndpointWithTypo_DELETEMethod() throws Exception {
+  public void restManagerEndpointsWithTypo_DELETEModelStore_shouldThrowException()
+      throws Exception {
     String modelStoreEndpointWithTypoAndModelName = "/schema/models-store/model1";
 
     assertJDelete(

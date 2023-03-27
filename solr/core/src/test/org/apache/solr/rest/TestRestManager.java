@@ -120,6 +120,44 @@ public class TestRestManager extends SolrRestletTestBase {
   }
 
   @Test
+  public void testRestManagerEndpointsWithTypo() throws Exception {
+    assertJQ("/schema/managed", "/responseHeader/status==0");
+    assertHead("/schema/managed", 200);
+
+    // add a ManagedWordSetResource for managing german stop words
+    String newEndpoint = "/schema/analysis/stopwords/italian";
+    String newEndpointWithTypo = "/schema/analysiss/stopwords/italian";
+
+    assertJPut(
+        newEndpoint,
+        json("{ 'class':'solr.ManagedWordSetResource' }"),
+        "/responseHeader/status==0");
+
+    assertJQ(
+        "/schema/managed",
+        "/managedResources/[2]/class=='org.apache.solr.rest.schema.analysis.ManagedWordSetResource'",
+        "/managedResources/[2]/resourceId=='/schema/analysis/stopwords/italian'");
+    assertHead("/schema/managed", 200);
+
+    // add a word to the managedResource created
+    assertJPut(newEndpoint, Utils.toJSONString(Arrays.asList("ma")), "/responseHeader/status==0");
+
+    // add a word to a non-existent managedResource
+    assertJPut(
+        newEndpointWithTypo,
+        Utils.toJSONString(Arrays.asList("ma")),
+        "/error/msg=='Trying to put the payload for a non-existent ManagedResource. Check for a typo in the endpoint or create the new ManagedResource before pushing data'");
+
+    // delete the one we created above
+    assertJDelete(newEndpoint, "/responseHeader/status==0");
+
+    // delete a non-existent resource
+    assertJDelete(
+        newEndpointWithTypo,
+        "/error/msg=='No REST managed resource registered for path " + newEndpointWithTypo + "'");
+  }
+
+  @Test
   public void testReloadFromPersistentStorage() {
     SolrResourceLoader loader = new SolrResourceLoader(Paths.get("./"));
     File unitTestStorageDir = createTempDir("testRestManager").toFile();

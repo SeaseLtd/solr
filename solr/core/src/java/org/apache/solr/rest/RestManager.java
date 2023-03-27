@@ -315,15 +315,6 @@ public class RestManager {
       if (managedResource == null) {
         final String method = getSolrRequest().getHttpMethod();
         if ("PUT".equals(method) || "POST".equals(method)) {
-          // check for typos in the feature-store or model-store endpoints (like features-store or
-          // models-store)
-          if (!restManager.managed.containsKey(resourceId)
-              && (restManager.managed.containsKey("/schema/feature-store")
-                  || restManager.managed.containsKey("/schema/model-store"))) {
-            throw new SolrException(
-                ErrorCode.BAD_REQUEST,
-                "No REST managed resource registered for path " + resourceId);
-          }
           // delegate create requests to the RestManager
           managedResource = restManager.endpoint;
         } else {
@@ -477,7 +468,9 @@ public class RestManager {
     @SuppressWarnings("unchecked")
     @Override
     public synchronized void doPut(BaseSolrResource endpoint, Object json) {
-      if (json instanceof Map) {
+      if ((json instanceof Map)
+          && ((Map<?, ?>) json).size() == 1
+          && ((Map<?, ?>) json).containsKey("class")) {
         String resourceId = ManagedEndpoint.resolveResourceId(endpoint.getSolrRequest().getPath());
         Map<String, String> info = (Map<String, String>) json;
         info.put("resourceId", resourceId);
@@ -485,8 +478,7 @@ public class RestManager {
       } else {
         throw new SolrException(
             ErrorCode.BAD_REQUEST,
-            "Expected Map to create a new ManagedResource but received a "
-                + json.getClass().getName());
+            "Trying to put the payload for a non-existent ManagedResource. Check for a typo in the endpoint or create the new ManagedResource before pushing data");
       }
       // PUT just returns success status code with an empty body
     }

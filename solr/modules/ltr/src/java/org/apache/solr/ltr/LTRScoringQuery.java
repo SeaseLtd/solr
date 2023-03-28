@@ -609,21 +609,25 @@ public class LTRScoringQuery extends Query implements Accountable {
           if (activeDoc == targetDoc) {
             SolrIndexSearcher searcher = request.getSearcher();
             SolrCache<Integer, float[]> featureVectorCache = searcher.getFeatureVectorCache();
-            int docId = activeDoc + leafContext.docBase;
-            float[] featureVector = featureVectorCache.get(fvCacheKey(getScoringQuery(), docId));
-            if (featureVector != null) {
-              for (int i = 0; i < extractedFeatureWeights.length; i++) {
-                int featureId = extractedFeatureWeights[i].getIndex();
-                float featureValue = featureVector[featureId];
-                if (!Float.isNaN(featureValue)
-                    && featureValue != extractedFeatureWeights[i].getDefaultValue()) {
-                  featuresInfo[featureId].setValue(featureValue);
-                  featuresInfo[featureId].setUsed(true);
+            if(featureVectorCache != null) {
+              int docId = activeDoc + leafContext.docBase;
+              float[] featureVector = featureVectorCache.get(fvCacheKey(getScoringQuery(), docId));
+              if (featureVector != null) {
+                for (int i = 0; i < extractedFeatureWeights.length; i++) {
+                  int featureId = extractedFeatureWeights[i].getIndex();
+                  float featureValue = featureVector[featureId];
+                  if (!Float.isNaN(featureValue)
+                          && featureValue != extractedFeatureWeights[i].getDefaultValue()) {
+                    featuresInfo[featureId].setValue(featureValue);
+                    featuresInfo[featureId].setUsed(true);
+                  }
                 }
+              } else {
+                featureVector = extractFeatureVector();
+                featureVectorCache.put(fvCacheKey(getScoringQuery(), docId), featureVector);
               }
             } else {
-              featureVector = extractFeatureVector();
-              featureVectorCache.put(fvCacheKey(getScoringQuery(), docId), featureVector);
+              extractFeatureVector();
             }
           }
         }

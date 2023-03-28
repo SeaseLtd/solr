@@ -16,23 +16,23 @@
  <directoryFactory name="DirectoryFactory"
   class="${solr.directoryFactory:solr.RAMDirectoryFactory}" />
 
+ <!-- for use with the DefaultWrapperModel class -->
+ <lib dir="${solr.solr.home:.}/models" />
+
  <schemaFactory class="ClassicIndexSchemaFactory" />
 
  <requestDispatcher>
    <requestParsers enableStreamBody="true" />
  </requestDispatcher>
- 
+
  <!-- Query parser used to rerank top docs with a provided model -->
- <queryParser name="ltr" class="org.apache.solr.ltr.search.LTRQParserPlugin" >
-  <int name="threadModule.totalPoolThreads">10</int> <!-- Maximum threads to use for all queries -->
-  <int name="threadModule.numThreadsPerRequest">10</int> <!-- Maximum threads to use for a single query-->
- </queryParser>
-
-
+ <queryParser name="ltr"
+  class="org.apache.solr.ltr.search.LTRQParserPlugin" />
 
  <query>
   <filterCache class="solr.CaffeineCache" size="4096"
    initialSize="2048" autowarmCount="0" />
+  <featureVectorCache class="solr.CaffeineCache" size="4096" initialSize="2048" autowarmCount="0" />
  </query>
 
  <!-- add a transformer that will encode the document features in the response.
@@ -41,6 +41,16 @@
   enclosed between brackets (in this case [fv]). In order to get the feature
   vector you will have to specify that you want the field (e.g., fl="*,[fv]) -->
  <transformer name="fv" class="org.apache.solr.ltr.response.transform.LTRFeatureLoggerTransformerFactory">
+   <str name="defaultFormat">${solr.ltr.transformer.fv.defaultFormat:dense}</str>
+ </transformer>
+
+ <!-- add a transformer that will encode the model the interleaving process chose the search result from.
+  For each document the transformer will add an extra field in the response with the model picked. 
+  The name of the field will be the the name of the transformer
+  enclosed between brackets (in this case [interleaving]). 
+  In order to get the model chosen for the search result
+  you will have to specify that you want the field (e.g., fl="*,[interleaving]) -->
+ <transformer name="interleaving" class="org.apache.solr.ltr.response.transform.LTRInterleavingTransformerFactory">
  </transformer>
 
  <updateHandler class="solr.DirectUpdateHandler2">

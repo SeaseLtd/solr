@@ -26,6 +26,9 @@ public interface HighlightParams {
   public static final String FIELDS = HIGHLIGHT + ".fl";
   public static final String SNIPPETS = HIGHLIGHT + ".snippets";
 
+  public static final String MODEL =
+      HIGHLIGHT + ".model"; // to pass the model name/format in the request
+
   //    KEY:
   // OH = (original) Highlighter   (AKA the standard Highlighter)
   // FVH = FastVectorHighlighter

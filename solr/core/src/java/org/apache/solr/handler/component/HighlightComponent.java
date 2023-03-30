@@ -33,6 +33,7 @@ import org.apache.solr.common.util.SimpleOrderedMap;
 import org.apache.solr.core.PluginInfo;
 import org.apache.solr.core.SolrCore;
 import org.apache.solr.highlight.DefaultSolrHighlighter;
+import org.apache.solr.highlight.SemanticSolrHighlighter;
 import org.apache.solr.highlight.SolrHighlighter;
 import org.apache.solr.highlight.UnifiedSolrHighlighter;
 import org.apache.solr.request.SolrQueryRequest;
@@ -56,7 +57,9 @@ public class HighlightComponent extends SearchComponent
   public enum HighlightMethod {
     UNIFIED("unified"),
     FAST_VECTOR("fastVector"),
-    ORIGINAL("original");
+    ORIGINAL("original"),
+    // added a new method to highlight the answer for each document returned
+    SEMANTIC("semantic");
 
     private static final Map<String, HighlightMethod> METHODS =
         Stream.of(values())
@@ -178,6 +181,12 @@ public class HighlightComponent extends SearchComponent
           return solrConfigHighlighter;
         }
         return new UnifiedSolrHighlighter(); // cheap
+        // to handle the new method
+      case SEMANTIC:
+        if (solrConfigHighlighter instanceof SemanticSolrHighlighter) {
+          return solrConfigHighlighter;
+        }
+        return new SemanticSolrHighlighter();
       case FAST_VECTOR: // fall-through
       case ORIGINAL:
         // The configured highlighter might not actually be the original highlighter if

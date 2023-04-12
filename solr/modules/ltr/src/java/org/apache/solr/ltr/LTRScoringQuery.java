@@ -607,8 +607,13 @@ public class LTRScoringQuery extends Query implements Accountable {
 
         private void fillFeaturesInfo() throws IOException {
           if (activeDoc == targetDoc) {
-            SolrIndexSearcher searcher = request.getSearcher();
-            SolrCache<Integer, float[]> featureVectorCache = searcher.getFeatureVectorCache();
+            
+            SolrCache<Integer, float[]> featureVectorCache = null;
+            if(request != null){
+              SolrIndexSearcher searcher = request.getSearcher();
+              featureVectorCache = searcher.getFeatureVectorCache();
+            }
+            
             if(featureVectorCache != null) {
               int docId = activeDoc + leafContext.docBase;
               float[] featureVector = featureVectorCache.get(fvCacheKey(getScoringQuery(), docId));

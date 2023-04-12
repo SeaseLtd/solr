@@ -144,8 +144,12 @@ public class LTRScoringQuery extends Query implements Accountable {
   public int computeFvQueryKey() {
     final int prime = 31;
     int result = classHash();
-    result = (prime * result) + ((ltrScoringModel == null) ? 0 : ltrScoringModel.getFeatureStoreName().hashCode());
-    result = (prime * result) + ((ltrScoringModel == null) ? 0 : ltrScoringModel.getFeatures().hashCode());
+    result =
+        (prime * result)
+            + ((ltrScoringModel == null) ? 0 : ltrScoringModel.getFeatureStoreName().hashCode());
+    result =
+        (prime * result)
+            + ((ltrScoringModel == null) ? 0 : ltrScoringModel.getFeatures().hashCode());
     if (efi == null) {
       result = (prime * result) + 0;
     } else {
@@ -607,14 +611,14 @@ public class LTRScoringQuery extends Query implements Accountable {
 
         private void fillFeaturesInfo() throws IOException {
           if (activeDoc == targetDoc) {
-            
+
             SolrCache<Integer, float[]> featureVectorCache = null;
-            if(request != null){
+            if (request != null) {
               SolrIndexSearcher searcher = request.getSearcher();
               featureVectorCache = searcher.getFeatureVectorCache();
             }
-            
-            if(featureVectorCache != null) {
+
+            if (featureVectorCache != null) {
               int docId = activeDoc + leafContext.docBase;
               float[] featureVector = featureVectorCache.get(fvCacheKey(getScoringQuery(), docId));
               if (featureVector != null) {
@@ -622,7 +626,7 @@ public class LTRScoringQuery extends Query implements Accountable {
                   int featureId = extractedFeatureWeights[i].getIndex();
                   float featureValue = featureVector[featureId];
                   if (!Float.isNaN(featureValue)
-                          && featureValue != extractedFeatureWeights[i].getDefaultValue()) {
+                      && featureValue != extractedFeatureWeights[i].getDefaultValue()) {
                     featuresInfo[featureId].setValue(featureValue);
                     featuresInfo[featureId].setUsed(true);
                   }

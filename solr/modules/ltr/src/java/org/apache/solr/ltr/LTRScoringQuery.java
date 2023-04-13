@@ -634,7 +634,7 @@ public class LTRScoringQuery extends Query implements Accountable {
               int featureId = extractedFeatureWeights[i].getIndex();
               float featureValue = featureVector[featureId];
               if (!Float.isNaN(featureValue)
-                      && featureValue != extractedFeatureWeights[i].getDefaultValue()) {
+                  && featureValue != extractedFeatureWeights[i].getDefaultValue()) {
                 featuresInfo[featureId].setValue(featureValue);
                 featuresInfo[featureId].setUsed(true);
               }

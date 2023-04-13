@@ -611,8 +611,8 @@ public class LTRScoringQuery extends Query implements Accountable {
 
         private void fillFeaturesInfo() throws IOException {
           if (activeDoc == targetDoc) {
-
             SolrCache<Integer, float[]> featureVectorCache = null;
+            float[] featureVector;
             if (request != null) {
               SolrIndexSearcher searcher = request.getSearcher();
               featureVectorCache = searcher.getFeatureVectorCache();
@@ -620,23 +620,24 @@ public class LTRScoringQuery extends Query implements Accountable {
 
             if (featureVectorCache != null) {
               int docId = activeDoc + leafContext.docBase;
-              float[] featureVector = featureVectorCache.get(fvCacheKey(getScoringQuery(), docId));
-              if (featureVector != null) {
-                for (int i = 0; i < extractedFeatureWeights.length; i++) {
-                  int featureId = extractedFeatureWeights[i].getIndex();
-                  float featureValue = featureVector[featureId];
-                  if (!Float.isNaN(featureValue)
-                      && featureValue != extractedFeatureWeights[i].getDefaultValue()) {
-                    featuresInfo[featureId].setValue(featureValue);
-                    featuresInfo[featureId].setUsed(true);
-                  }
-                }
-              } else {
+              int fvCacheKey = fvCacheKey(getScoringQuery(), docId);
+              featureVector = featureVectorCache.get(fvCacheKey);
+              if (featureVector == null) {
                 featureVector = extractFeatureVector();
-                featureVectorCache.put(fvCacheKey(getScoringQuery(), docId), featureVector);
+                featureVectorCache.put(fvCacheKey, featureVector);
               }
             } else {
-              extractFeatureVector();
+              featureVector = extractFeatureVector();
+            }
+
+            for (int i = 0; i < extractedFeatureWeights.length; i++) {
+              int featureId = extractedFeatureWeights[i].getIndex();
+              float featureValue = featureVector[featureId];
+              if (!Float.isNaN(featureValue)
+                      && featureValue != extractedFeatureWeights[i].getDefaultValue()) {
+                featuresInfo[featureId].setValue(featureValue);
+                featuresInfo[featureId].setUsed(true);
+              }
             }
           }
         }
@@ -693,11 +694,7 @@ public class LTRScoringQuery extends Query implements Accountable {
             Feature.FeatureWeight feature = (Feature.FeatureWeight) subScorer.getWeight();
             final int featureId = feature.getIndex();
             float featureValue = subScorer.score();
-            if (!Float.isNaN(featureValue) && featureValue != feature.getDefaultValue()) {
-              featuresInfo[featureId].setValue(featureValue);
-              featuresInfo[featureId].setUsed(true);
-              featureVector[featureId] = featureValue;
-            }
+            featureVector[featureId] = featureValue;
           }
           return featureVector;
         }
@@ -773,11 +770,7 @@ public class LTRScoringQuery extends Query implements Accountable {
               Feature.FeatureWeight scFW = (Feature.FeatureWeight) scorer.getWeight();
               final int featureId = scFW.getIndex();
               float featureValue = scorer.score();
-              if (!Float.isNaN(featureValue) && featureValue != scFW.getDefaultValue()) {
-                featuresInfo[featureId].setValue(featureValue);
-                featuresInfo[featureId].setUsed(true);
-                featureVector[featureId] = featureValue;
-              }
+              featureVector[featureId] = featureValue;
             }
           }
           return featureVector;

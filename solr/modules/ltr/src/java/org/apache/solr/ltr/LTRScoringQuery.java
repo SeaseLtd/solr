@@ -102,7 +102,7 @@ public class LTRScoringQuery extends Query implements Accountable {
     } else {
       this.querySemaphore = null;
     }
-    this.fvQueryKey = computeFvQueryKey();
+    this.fvQueryKey = generateFeatureVectorQueryKey();
   }
 
   public LTRScoringModel getScoringModel() {
@@ -141,7 +141,7 @@ public class LTRScoringQuery extends Query implements Accountable {
     return request;
   }
 
-  public int computeFvQueryKey() {
+  public int generateFeatureVectorQueryKey() {
     final int prime = 31;
     int result = classHash();
     result =
@@ -150,16 +150,7 @@ public class LTRScoringQuery extends Query implements Accountable {
     result =
         (prime * result)
             + ((ltrScoringModel == null) ? 0 : ltrScoringModel.getFeatures().hashCode());
-    if (efi == null) {
-      result = (prime * result) + 0;
-    } else {
-      for (final Map.Entry<String, String[]> entry : efi.entrySet()) {
-        final String key = entry.getKey();
-        final String[] values = entry.getValue();
-        result = (prime * result) + key.hashCode();
-        result = (prime * result) + Arrays.hashCode(values);
-      }
-    }
+    result = addEfisHash(result, prime);
     return (prime * result) + this.toString().hashCode();
   }
 
@@ -169,6 +160,12 @@ public class LTRScoringQuery extends Query implements Accountable {
     int result = classHash();
     result = (prime * result) + ((ltrScoringModel == null) ? 0 : ltrScoringModel.hashCode());
     result = (prime * result) + ((originalQuery == null) ? 0 : originalQuery.hashCode());
+    result = addEfisHash(result, prime);
+    result = (prime * result) + this.toString().hashCode();
+    return result;
+  }
+
+  private int addEfisHash(int result, int prime) {
     if (efi == null) {
       result = (prime * result) + 0;
     } else {
@@ -179,7 +176,6 @@ public class LTRScoringQuery extends Query implements Accountable {
         result = (prime * result) + Arrays.hashCode(values);
       }
     }
-    result = (prime * result) + this.toString().hashCode();
     return result;
   }
 

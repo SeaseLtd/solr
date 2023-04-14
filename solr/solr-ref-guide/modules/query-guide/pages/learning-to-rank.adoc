@@ -548,7 +548,7 @@ For sparse CSV output such as `featureA:0.1 featureB:0.2` you can customize the 
 ----
 
 Sparse format will show only non default values.
-By default, Solr will put zero as the default value for your features (e.g. when a feature value is missing). If in your use case, a null value for a feature has a different meaning than a zero value, and you want to show also zeros in the sparse format, you can set null as the default value for that feature:
+By default, Solr will put zero as the default value for your features (e.g. when a feature value is missing). If in your use case, a null value for a feature has a different meaning than a zero value, and you want to show also zeros in the sparse format, you can set NaN as the default value for that feature:
 
 .Example: /path/myFeatures.json
 [source,json]

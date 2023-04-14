@@ -362,12 +362,12 @@ public class LTRScoringQuery extends Query implements Accountable {
   public static class FeatureInfo {
     private final String name;
     private float value;
-    private boolean used;
+    private boolean isDefaultValue;
 
-    FeatureInfo(String n, float v, boolean u) {
-      name = n;
-      value = v;
-      used = u;
+    FeatureInfo(String name, float value, boolean isDefaultValue) {
+      this.name = name;
+      this.value = value;
+      this.isDefaultValue = isDefaultValue;
     }
 
     public void setValue(float value) {
@@ -382,12 +382,12 @@ public class LTRScoringQuery extends Query implements Accountable {
       return value;
     }
 
-    public boolean isUsed() {
-      return used;
+    public boolean isDefaultValue() {
+      return isDefaultValue;
     }
 
-    public void setUsed(boolean used) {
-      this.used = used;
+    public void setIsDefaultValue(boolean isDefaultValue) {
+      this.isDefaultValue = isDefaultValue;
     }
   }
 
@@ -428,7 +428,7 @@ public class LTRScoringQuery extends Query implements Accountable {
         String featName = extractedFeatureWeights[i].getName();
         int featId = extractedFeatureWeights[i].getIndex();
         float value = extractedFeatureWeights[i].getDefaultValue();
-        featuresInfo[featId] = new FeatureInfo(featName, value, false);
+        featuresInfo[featId] = new FeatureInfo(featName, value, true);
       }
     }
 
@@ -461,7 +461,7 @@ public class LTRScoringQuery extends Query implements Accountable {
         final int featureId = feature.getIndex();
         FeatureInfo fInfo = featuresInfo[featureId];
         // not checking for finfo == null as that would be a bug we should catch
-        if (fInfo.isUsed()) {
+        if (!fInfo.isDefaultValue()) {
           modelFeatureValuesNormalized[pos] = fInfo.getValue();
         } else {
           modelFeatureValuesNormalized[pos] = feature.getDefaultValue();
@@ -500,7 +500,7 @@ public class LTRScoringQuery extends Query implements Accountable {
         // need to set default value everytime as the default value is used in 'dense'
         // mode even if used=false
         featuresInfo[featId].setValue(value);
-        featuresInfo[featId].setUsed(false);
+        featuresInfo[featId].setIsDefaultValue(true);
       }
     }
 
@@ -632,7 +632,7 @@ public class LTRScoringQuery extends Query implements Accountable {
               if (!Float.isNaN(featureValue)
                   && featureValue != extractedFeatureWeights[i].getDefaultValue()) {
                 featuresInfo[featureId].setValue(featureValue);
-                featuresInfo[featureId].setUsed(true);
+                featuresInfo[featureId].setIsDefaultValue(false);
               }
             }
           }

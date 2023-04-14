@@ -170,8 +170,7 @@ public class TestSelectiveWeightCreation extends TestRerankBase {
     int validFeatures = 0;
     for (int i = 0; i < featuresInfo.length; ++i) {
       if (featuresInfo[i] != null
-          && featuresInfo[i].isUsed()
-          && featuresInfo[i].getValue() != features.get(i).getDefaultValue()) {
+          && !featuresInfo[i].isDefaultValue()) {
         validFeatures += 1;
       }
     }
@@ -207,7 +206,7 @@ public class TestSelectiveWeightCreation extends TestRerankBase {
 
     validFeatures = 0;
     for (int i = 0; i < featuresInfo.length; ++i) {
-      if (featuresInfo[i] != null && featuresInfo[i].isUsed()) {
+      if (featuresInfo[i] != null && !featuresInfo[i].isDefaultValue()) {
         validFeatures += 1;
       }
     }

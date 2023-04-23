@@ -220,7 +220,9 @@ public class NeuralNetworkModel extends LTRScoringModel {
       for (int i = 0; i < this.matrixRows; i++) {
         float outputVal = this.biasVector[i];
         for (int j = 0; j < this.matrixCols; j++) {
-          outputVal += this.weightMatrix[i][j] * inputVec[j];
+          if (!Float.isNaN(inputVec[j])) {
+            outputVal += this.weightMatrix[i][j] * inputVec[j];
+          }
         }
         outputVec[i] = this.activation.apply(outputVal);
       }

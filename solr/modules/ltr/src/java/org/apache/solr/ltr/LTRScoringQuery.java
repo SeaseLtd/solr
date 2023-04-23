@@ -46,6 +46,8 @@ import org.apache.lucene.util.RamUsageEstimator;
 import org.apache.solr.ltr.feature.Feature;
 import org.apache.solr.ltr.model.LTRScoringModel;
 import org.apache.solr.request.SolrQueryRequest;
+import org.apache.solr.search.SolrCache;
+import org.apache.solr.search.SolrIndexSearcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,6 +78,8 @@ public class LTRScoringQuery extends Query implements Accountable {
   // Original solr request
   private SolrQueryRequest request;
 
+  private final int fvQueryKey;
+
   public LTRScoringQuery(LTRScoringModel ltrScoringModel) {
     this(ltrScoringModel, Collections.<String, String[]>emptyMap(), false, null);
   }
@@ -98,6 +102,7 @@ public class LTRScoringQuery extends Query implements Accountable {
     } else {
       this.querySemaphore = null;
     }
+    this.fvQueryKey = generateFeatureVectorQueryKey();
   }
 
   public LTRScoringModel getScoringModel() {
@@ -136,12 +141,31 @@ public class LTRScoringQuery extends Query implements Accountable {
     return request;
   }
 
+  public int generateFeatureVectorQueryKey() {
+    final int prime = 31;
+    int result = classHash();
+    result =
+        (prime * result)
+            + ((ltrScoringModel == null) ? 0 : ltrScoringModel.getFeatureStoreName().hashCode());
+    result =
+        (prime * result)
+            + ((ltrScoringModel == null) ? 0 : ltrScoringModel.getFeatures().hashCode());
+    result = addEfisHash(result, prime);
+    return (prime * result) + this.toString().hashCode();
+  }
+
   @Override
   public int hashCode() {
     final int prime = 31;
     int result = classHash();
     result = (prime * result) + ((ltrScoringModel == null) ? 0 : ltrScoringModel.hashCode());
     result = (prime * result) + ((originalQuery == null) ? 0 : originalQuery.hashCode());
+    result = addEfisHash(result, prime);
+    result = (prime * result) + this.toString().hashCode();
+    return result;
+  }
+
+  private int addEfisHash(int result, int prime) {
     if (efi == null) {
       result = (prime * result) + 0;
     } else {
@@ -152,7 +176,6 @@ public class LTRScoringQuery extends Query implements Accountable {
         result = (prime * result) + Arrays.hashCode(values);
       }
     }
-    result = (prime * result) + this.toString().hashCode();
     return result;
   }
 
@@ -339,12 +362,12 @@ public class LTRScoringQuery extends Query implements Accountable {
   public static class FeatureInfo {
     private final String name;
     private float value;
-    private boolean used;
+    private boolean isDefaultValue;
 
-    FeatureInfo(String n, float v, boolean u) {
-      name = n;
-      value = v;
-      used = u;
+    FeatureInfo(String name, float value, boolean isDefaultValue) {
+      this.name = name;
+      this.value = value;
+      this.isDefaultValue = isDefaultValue;
     }
 
     public void setValue(float value) {
@@ -359,12 +382,12 @@ public class LTRScoringQuery extends Query implements Accountable {
       return value;
     }
 
-    public boolean isUsed() {
-      return used;
+    public boolean isDefaultValue() {
+      return isDefaultValue;
     }
 
-    public void setUsed(boolean used) {
-      this.used = used;
+    public void setIsDefaultValue(boolean isDefaultValue) {
+      this.isDefaultValue = isDefaultValue;
     }
   }
 
@@ -376,17 +399,7 @@ public class LTRScoringQuery extends Query implements Accountable {
     private final float[] modelFeatureValuesNormalized;
     private final Feature.FeatureWeight[] extractedFeatureWeights;
 
-    // List of all the feature names, values - used for both scoring and logging
-    /*
-     *  What is the advantage of using a hashmap here instead of an array of objects?
-     *     A set of arrays was used earlier and the elements were accessed using the featureId.
-     *     With the updated logic to create weights selectively,
-     *     the number of elements in the array can be fewer than the total number of features.
-     *     When [features] are not requested, only the model features are extracted.
-     *     In this case, the indexing by featureId, fails. For this reason,
-     *     we need a map which holds just the features that were triggered by the documents in the result set.
-     *
-     */
+    // All the features
     private final FeatureInfo[] featuresInfo;
     /*
      * @param modelFeatureWeights
@@ -415,7 +428,7 @@ public class LTRScoringQuery extends Query implements Accountable {
         String featName = extractedFeatureWeights[i].getName();
         int featId = extractedFeatureWeights[i].getIndex();
         float value = extractedFeatureWeights[i].getDefaultValue();
-        featuresInfo[featId] = new FeatureInfo(featName, value, false);
+        featuresInfo[featId] = new FeatureInfo(featName, value, true);
       }
     }
 
@@ -448,7 +461,7 @@ public class LTRScoringQuery extends Query implements Accountable {
         final int featureId = feature.getIndex();
         FeatureInfo fInfo = featuresInfo[featureId];
         // not checking for finfo == null as that would be a bug we should catch
-        if (fInfo.isUsed()) {
+        if (!fInfo.isDefaultValue()) {
           modelFeatureValuesNormalized[pos] = fInfo.getValue();
         } else {
           modelFeatureValuesNormalized[pos] = feature.getDefaultValue();
@@ -487,7 +500,7 @@ public class LTRScoringQuery extends Query implements Accountable {
         // need to set default value everytime as the default value is used in 'dense'
         // mode even if used=false
         featuresInfo[featId].setValue(value);
-        featuresInfo[featId].setUsed(false);
+        featuresInfo[featId].setIsDefaultValue(true);
       }
     }
 
@@ -507,7 +520,7 @@ public class LTRScoringQuery extends Query implements Accountable {
       // score on the model for every document, since 0 features matching could
       // return a
       // non 0 score for a given model.
-      ModelScorer mscorer = new ModelScorer(this, featureScorers);
+      ModelScorer mscorer = new ModelScorer(this, featureScorers, context);
       return mscorer;
     }
 
@@ -518,13 +531,16 @@ public class LTRScoringQuery extends Query implements Accountable {
 
     public class ModelScorer extends Scorer {
       private final DocInfo docInfo;
-      private final Scorer featureTraversalScorer;
+      private final FeatureTraversalScorer featureTraversalScorer;
 
       public DocInfo getDocInfo() {
         return docInfo;
       }
 
-      public ModelScorer(Weight weight, List<Feature.FeatureWeight.FeatureScorer> featureScorers) {
+      public ModelScorer(
+          Weight weight,
+          List<Feature.FeatureWeight.FeatureScorer> featureScorers,
+          LeafReaderContext leafContext) {
         super(weight);
         docInfo = new DocInfo();
         for (final Feature.FeatureWeight.FeatureScorer subScorer : featureScorers) {
@@ -532,9 +548,9 @@ public class LTRScoringQuery extends Query implements Accountable {
         }
         if (featureScorers.size() <= 1) {
           // future enhancement: allow the use of dense features in other cases
-          featureTraversalScorer = new DenseModelScorer(weight, featureScorers);
+          featureTraversalScorer = new DenseModelScorer(weight, featureScorers, leafContext);
         } else {
-          featureTraversalScorer = new SparseModelScorer(weight, featureScorers);
+          featureTraversalScorer = new SparseModelScorer(weight, featureScorers, leafContext);
         }
       }
 
@@ -563,16 +579,91 @@ public class LTRScoringQuery extends Query implements Accountable {
         return featureTraversalScorer.iterator();
       }
 
-      private class SparseModelScorer extends Scorer {
-        private final DisiPriorityQueue subScorers;
-        private final ScoringQuerySparseIterator itr;
+      private LTRScoringQuery getScoringQuery() {
+        return LTRScoringQuery.this;
+      }
 
-        private int targetDoc = -1;
-        private int activeDoc = -1;
+      abstract class FeatureTraversalScorer extends Scorer {
+        protected int targetDoc = -1;
+        protected int activeDoc = -1;
+        protected LeafReaderContext leafContext;
 
-        private SparseModelScorer(
-            Weight weight, List<Feature.FeatureWeight.FeatureScorer> featureScorers) {
+        protected FeatureTraversalScorer(Weight weight, LeafReaderContext leafContext) {
           super(weight);
+          this.leafContext = leafContext;
+        }
+
+        @Override
+        public float score() throws IOException {
+          reset();
+          fillFeaturesInfo();
+          return makeNormalizedFeaturesAndScore();
+        }
+
+        @Override
+        public float getMaxScore(int upTo) throws IOException {
+          return Float.POSITIVE_INFINITY;
+        }
+
+        private void fillFeaturesInfo() throws IOException {
+          if (activeDoc == targetDoc) {
+            SolrCache<Integer, float[]> featureVectorCache = null;
+            float[] featureVector;
+            if (request != null) {
+              SolrIndexSearcher searcher = request.getSearcher();
+              featureVectorCache = searcher.getFeatureVectorCache();
+            }
+
+            if (featureVectorCache != null) {
+              int docId = activeDoc + leafContext.docBase;
+              int fvCacheKey = fvCacheKey(getScoringQuery(), docId);
+              featureVector = featureVectorCache.get(fvCacheKey);
+              if (featureVector == null) {
+                featureVector = extractFeatureVector();
+                featureVectorCache.put(fvCacheKey, featureVector);
+              }
+            } else {
+              featureVector = extractFeatureVector();
+            }
+
+            for (int i = 0; i < extractedFeatureWeights.length; i++) {
+              int featureId = extractedFeatureWeights[i].getIndex();
+              float featureValue = featureVector[featureId];
+              if (!Float.isNaN(featureValue)
+                  && featureValue != extractedFeatureWeights[i].getDefaultValue()) {
+                featuresInfo[featureId].setValue(featureValue);
+                featuresInfo[featureId].setIsDefaultValue(false);
+              }
+            }
+          }
+        }
+
+        private int fvCacheKey(LTRScoringQuery scoringQuery, int docId) {
+          return (31 * scoringQuery.fvQueryKey) + docId;
+        }
+
+        protected float[] initFeatureVector(FeatureInfo[] featuresInfos) {
+          float[] featureVector = new float[featuresInfo.length];
+          for (int i = 0; i < featuresInfos.length; i++) {
+            if (featuresInfos[i] != null) {
+              featureVector[i] = featuresInfos[i].getValue();
+            }
+          }
+          return featureVector;
+        }
+
+        protected abstract float[] extractFeatureVector() throws IOException;
+      }
+
+      private class SparseModelScorer extends FeatureTraversalScorer {
+        private final DisiPriorityQueue subScorers;
+        private final ScoringQuerySparseIterator sparseIterator;
+
+        public SparseModelScorer(
+            Weight weight,
+            List<Feature.FeatureWeight.FeatureScorer> featureScorers,
+            LeafReaderContext leafContext) {
+          super(weight, leafContext);
           if (featureScorers.size() <= 1) {
             throw new IllegalArgumentException("There must be at least 2 subScorers");
           }
@@ -582,43 +673,31 @@ public class LTRScoringQuery extends Query implements Accountable {
             subScorers.add(w);
           }
 
-          itr = new ScoringQuerySparseIterator(subScorers);
+          sparseIterator = new ScoringQuerySparseIterator(subScorers);
         }
 
         @Override
         public int docID() {
-          return itr.docID();
+          return sparseIterator.docID();
         }
 
         @Override
-        public float score() throws IOException {
+        protected float[] extractFeatureVector() throws IOException {
           final DisiWrapper topList = subScorers.topList();
-          // If target doc we wanted to advance to match the actual doc
-          // the underlying features advanced to, perform the feature
-          // calculations,
-          // otherwise just continue with the model's scoring process with empty
-          // features.
-          reset();
-          if (activeDoc == targetDoc) {
-            for (DisiWrapper w = topList; w != null; w = w.next) {
-              final Scorer subScorer = w.scorer;
-              Feature.FeatureWeight scFW = (Feature.FeatureWeight) subScorer.getWeight();
-              final int featureId = scFW.getIndex();
-              featuresInfo[featureId].setValue(subScorer.score());
-              featuresInfo[featureId].setUsed(true);
-            }
+          float[] featureVector = initFeatureVector(featuresInfo);
+          for (DisiWrapper w = topList; w != null; w = w.next) {
+            final Scorer subScorer = w.scorer;
+            Feature.FeatureWeight feature = (Feature.FeatureWeight) subScorer.getWeight();
+            final int featureId = feature.getIndex();
+            float featureValue = subScorer.score();
+            featureVector[featureId] = featureValue;
           }
-          return makeNormalizedFeaturesAndScore();
-        }
-
-        @Override
-        public float getMaxScore(int upTo) throws IOException {
-          return Float.POSITIVE_INFINITY;
+          return featureVector;
         }
 
         @Override
         public DocIdSetIterator iterator() {
-          return itr;
+          return sparseIterator;
         }
 
         @Override
@@ -662,15 +741,14 @@ public class LTRScoringQuery extends Query implements Accountable {
         }
       }
 
-      private class DenseModelScorer extends Scorer {
-        private int activeDoc = -1; // The doc that our scorer's are actually at
-        private int targetDoc = -1; // The doc we were most recently told to go to
-        private int freq = -1;
+      private class DenseModelScorer extends FeatureTraversalScorer {
         private final List<Feature.FeatureWeight.FeatureScorer> featureScorers;
 
-        private DenseModelScorer(
-            Weight weight, List<Feature.FeatureWeight.FeatureScorer> featureScorers) {
-          super(weight);
+        public DenseModelScorer(
+            Weight weight,
+            List<Feature.FeatureWeight.FeatureScorer> featureScorers,
+            LeafReaderContext leafContext) {
+          super(weight, leafContext);
           this.featureScorers = featureScorers;
         }
 
@@ -680,26 +758,18 @@ public class LTRScoringQuery extends Query implements Accountable {
         }
 
         @Override
-        public float score() throws IOException {
-          reset();
-          freq = 0;
-          if (targetDoc == activeDoc) {
-            for (final Scorer scorer : featureScorers) {
-              if (scorer.docID() == activeDoc) {
-                freq++;
-                Feature.FeatureWeight scFW = (Feature.FeatureWeight) scorer.getWeight();
-                final int featureId = scFW.getIndex();
-                featuresInfo[featureId].setValue(scorer.score());
-                featuresInfo[featureId].setUsed(true);
-              }
+        protected float[] extractFeatureVector() throws IOException {
+          float[] featureVector = initFeatureVector(featuresInfo);
+          for (int i = 0; i < featureScorers.size(); i++) {
+            Scorer scorer = featureScorers.get(i);
+            if (scorer.docID() == activeDoc) {
+              Feature.FeatureWeight scFW = (Feature.FeatureWeight) scorer.getWeight();
+              final int featureId = scFW.getIndex();
+              float featureValue = scorer.score();
+              featureVector[featureId] = featureValue;
             }
           }
-          return makeNormalizedFeaturesAndScore();
-        }
-
-        @Override
-        public float getMaxScore(int upTo) throws IOException {
-          return Float.POSITIVE_INFINITY;
+          return featureVector;
         }
 
         @Override

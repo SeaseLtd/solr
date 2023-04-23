@@ -501,35 +501,28 @@ Note that by default paths are relative to the Solr core so they may need adjust
 +
 [source,xml]
 ----
-<queryParser name="ltr" class="org.apache.solr.ltr.search.LTRQParserPlugin"/>
+<queryParser name="ltr" class="org.apache.solr.ltr.search.LTRQParserPlugin" />
 ----
 
 * Configuration of the feature values cache.
 +
 [source,xml]
 ----
-<cache name="QUERY_DOC_FV"
-       class="solr.search.CaffeineCache"
-       size="4096"
-       initialSize="2048"
-       autowarmCount="4096"
-       regenerator="solr.search.NoOpRegenerator" />
+<featureVectorCache class="solr.CaffeineCache" size="4096" initialSize="2048" autowarmCount="0" />
 ----
 
 * Declaration of the `[features]` transformer.
 +
 [source,xml]
 ----
-<transformer name="features" class="org.apache.solr.ltr.response.transform.LTRFeatureLoggerTransformerFactory">
-  <str name="fvCacheName">QUERY_DOC_FV</str>
-</transformer>
+<transformer name="features" class="org.apache.solr.ltr.response.transform.LTRFeatureLoggerTransformerFactory" />
 ----
 
 * Declaration of the `[interleaving]` transformer.
 +
 [source,xml]
 ----
-<transformer name="interleaving" class="org.apache.solr.ltr.response.transform.LTRInterleavingTransformerFactory"/>
+<transformer name="interleaving" class="org.apache.solr.ltr.response.transform.LTRInterleavingTransformerFactory" />
 ----
 
 === Advanced Options
@@ -541,19 +534,37 @@ For details, please refer to the {solr-javadocs}/modules/ltr/org/apache/solr/ltr
 
 ==== Feature Vector Customization
 
-The features transformer returns dense CSV values such as `featureA=0.1,featureB=0.2,featureC=0.3,featureD=0.0`.
+By default, the features transformer returns dense CSV values such as `featureA=0.1,featureB=0.2,featureC=0.0,featureD=0.0`. With dense we mean that all features values will be shown.
 
-For sparse CSV output such as `featureA:0.1 featureB:0.2 featureC:0.3` you can customize the {solr-javadocs}/modules/ltr/org/apache/solr/ltr/response/transform/LTRFeatureLoggerTransformerFactory.html[feature logger transformer] declaration in `solrconfig.xml` as follows:
+For sparse CSV output such as `featureA:0.1 featureB:0.2` you can customize the {solr-javadocs}/modules/ltr/org/apache/solr/ltr/response/transform/LTRFeatureLoggerTransformerFactory.html[feature logger transformer] declaration in `solrconfig.xml` as follows:
 
 [source,xml]
 ----
 <transformer name="features" class="org.apache.solr.ltr.response.transform.LTRFeatureLoggerTransformerFactory">
-  <str name="fvCacheName">QUERY_DOC_FV</str>
   <str name="defaultFormat">sparse</str>
   <str name="csvKeyValueDelimiter">:</str>
   <str name="csvFeatureSeparator"> </str>
 </transformer>
 ----
+
+Sparse format will show only non default values.
+By default, Solr will put zero as the default value for your features (e.g. when a feature value is missing). If in your use case, a null value for a feature has a different meaning than a zero value, and you want to show also zeros in the sparse format, you can set NaN as the default value for that feature:
+
+.Example: /path/myFeatures.json
+[source,json]
+----
+[
+  {
+    "name": "featureC",
+    "class": "org.apache.solr.ltr.feature.FieldValueFeature",
+    "params": {
+      "field": "fieldC",
+      "defaultValue": "NaN"
+    }
+  }
+]
+----
+For this feature, the sparse format will show you also zero values: `featureA=0.1,featureB=0.2,featureC=0.0`.
 
 ==== Models handling features' null values
 This feature is available only for {solr-javadocs}/modules/ltr/org/apache/solr/ltr/model/MultipleAdditiveTreesModel.html[MultipleAdditiveTreesModel].

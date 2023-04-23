@@ -463,12 +463,7 @@
 
          https://solr.apache.org/guide/solr/latest/query-guide/learning-to-rank.html
       -->
-    <cache enable="${solr.ltr.enabled:false}" name="QUERY_DOC_FV"
-           class="solr.CaffeineCache"
-           size="4096"
-           initialSize="2048"
-           autowarmCount="4096"
-           regenerator="solr.search.NoOpRegenerator" />
+    <featureVectorCache enable="${solr.ltr.enabled:false}" class="solr.CaffeineCache" size="4096" initialSize="2048" autowarmCount="0" />
 
     <!-- Custom Cache
 
@@ -1403,6 +1398,5 @@ via parameters.  The below configuration supports hl.method=original and fastVec
       https://solr.apache.org/guide/solr/latest/query-guide/learning-to-rank.html
       -->
     <transformer enable="${solr.ltr.enabled:false}" name="features" class="org.apache.solr.ltr.response.transform.LTRFeatureLoggerTransformerFactory">
-      <str name="fvCacheName">QUERY_DOC_FV</str>
     </transformer>
 </config>

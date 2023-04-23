@@ -169,11 +169,20 @@ public class TestSelectiveWeightCreation extends TestRerankBase {
     assertEquals(features.size(), modelWeight.getModelFeatureValuesNormalized().length);
     int validFeatures = 0;
     for (int i = 0; i < featuresInfo.length; ++i) {
-      if (featuresInfo[i] != null && featuresInfo[i].isUsed()) {
+      if (featuresInfo[i] != null
+          && !featuresInfo[i].isDefaultValue()) {
         validFeatures += 1;
       }
     }
-    assertEquals(validFeatures, features.size());
+    int expected_features = 0;
+    for (int i = 0; i < features.size(); i++) {
+      ValueFeature feature = (ValueFeature) features.get(i);
+      int value = (int) feature.getValue();
+      if (value != features.get(i).getDefaultValue()) {
+        expected_features += 1;
+      }
+    }
+    assertEquals(validFeatures, expected_features);
 
     // when features are requested in the response, weights should be created for all features
     final LTRScoringModel ltrScoringModel2 =
@@ -197,11 +206,19 @@ public class TestSelectiveWeightCreation extends TestRerankBase {
 
     validFeatures = 0;
     for (int i = 0; i < featuresInfo.length; ++i) {
-      if (featuresInfo[i] != null && featuresInfo[i].isUsed()) {
+      if (featuresInfo[i] != null && !featuresInfo[i].isDefaultValue()) {
         validFeatures += 1;
       }
     }
-    assertEquals(validFeatures, allFeatures.size());
+    expected_features = 0;
+    for (int i = 0; i < allFeatures.size(); i++) {
+      ValueFeature feature = (ValueFeature) allFeatures.get(i);
+      int value = (int) feature.getValue();
+      if (value != allFeatures.get(i).getDefaultValue()) {
+        expected_features += 1;
+      }
+    }
+    assertEquals(validFeatures, expected_features);
 
     assertU(delI("10"));
     assertU(delI("11"));

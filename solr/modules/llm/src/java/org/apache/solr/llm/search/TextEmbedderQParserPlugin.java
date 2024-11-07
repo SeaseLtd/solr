@@ -17,6 +17,11 @@
 package org.apache.solr.llm.search;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Map;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.lucene.index.VectorEncoding;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.util.ResourceLoader;
@@ -36,6 +41,9 @@ import org.apache.solr.search.QParser;
 import org.apache.solr.search.QParserPlugin;
 import org.apache.solr.search.SyntaxError;
 import org.apache.solr.search.neural.KnnQParser;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.solr.llm.embedding.SolrEmbeddingModel.MODELS_STORE_PATH;
 
 /**
  * A neural query parser that embed the query and then run K-nearest neighbors search on Dense
@@ -83,7 +91,19 @@ public class TextEmbedderQParserPlugin extends QParserPlugin
       checkParam(qstr, "Query string is empty, nothing to embed");
       final String embeddingModelName = localParams.get(EMBEDDING_MODEL_PARAM);
       checkParam(embeddingModelName, "The 'model' parameter is missing");
-      SolrEmbeddingModel embedder = modelStore.getModel(embeddingModelName);
+      SolrEmbeddingModel embedder;
+      InputStream jsonModel = getJsonModel(embeddingModelName, req);
+        try {
+          Map<String, Object> modelParams = new ObjectMapper().readValue(jsonModel, HashMap.class);
+          embedder = SolrEmbeddingModel.getInstance(modelParams);
+        } catch (IOException e) {
+          throw new SolrException(
+                  SolrException.ErrorCode.BAD_REQUEST,
+                  " 1- The model requested '"
+                          + embeddingModelName
+                          + "' can't be found in the store: "
+                          + ManagedEmbeddingModelStore.REST_END_POINT);        }
+       
 
       if (embedder != null) {
         final SchemaField schemaField = req.getCore().getLatestSchema().getField(getFieldName());
@@ -108,11 +128,27 @@ public class TextEmbedderQParserPlugin extends QParserPlugin
       } else {
         throw new SolrException(
             SolrException.ErrorCode.BAD_REQUEST,
-            "The model requested '"
+            "2 - The model requested '"
                 + embeddingModelName
                 + "' can't be found in the store: "
                 + ManagedEmbeddingModelStore.REST_END_POINT);
       }
+    }
+  }
+  
+  private InputStream getJsonModel(String embeddingModelName, SolrQueryRequest req){
+    final InputStream[] json = new InputStream[1];
+    try {
+      req.getCoreContainer().getFileStore().get(
+              MODELS_STORE_PATH + "/"+embeddingModelName,
+              it -> {
+                json[0] = it.getInputStream();
+              },
+              false);
+      return json[0];
+    } catch (IOException e) {
+      throw new SolrException(
+              SolrException.ErrorCode.SERVER_ERROR, "Error getting file from path " + MODELS_STORE_PATH + "/"+embeddingModelName);
     }
   }
 

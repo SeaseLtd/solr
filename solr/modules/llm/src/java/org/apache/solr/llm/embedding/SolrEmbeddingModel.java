@@ -29,6 +29,8 @@ import org.apache.solr.llm.store.EmbeddingModelException;
 public class SolrEmbeddingModel implements Accountable {
   private static final long BASE_RAM_BYTES =
       RamUsageEstimator.shallowSizeOfInstance(SolrEmbeddingModel.class);
+  public static final String MODELS_STORE_PATH = "/embedding-models";
+  
   public static final String TIMEOUT_PARAM = "timeout";
   public static final String LOG_REQUESTS_PARAM = "logRequests";
   public static final String LOG_RESPONSES_PARAM = "logResponses";
@@ -96,6 +98,60 @@ public class SolrEmbeddingModel implements Accountable {
     this.name = name;
     this.embedder = embedder;
     this.params = params;
+  }
+
+  public static SolrEmbeddingModel getInstance(Map<String, Object> modelParams) {
+    String className = modelParams.get("class").toString();
+    String name = modelParams.get("name").toString();
+    try {
+      EmbeddingModel embedder;
+      Map<String, Object> params = (Map<String, Object>) modelParams.get("params");
+      Class<?> modelClass = Class.forName(className);
+      var builder = modelClass.getMethod("builder").invoke(null);
+      if (params != null) {
+        for (String paramName : params.keySet()) {
+          switch (paramName) {
+            case TIMEOUT_PARAM:
+              Duration timeOut = Duration.ofSeconds((Long) params.get(paramName));
+              builder.getClass().getMethod(paramName, Duration.class).invoke(builder, timeOut);
+              break;
+            case LOG_REQUESTS_PARAM:
+              builder
+                      .getClass()
+                      .getMethod(paramName, Boolean.class)
+                      .invoke(builder, params.get(paramName));
+              break;
+            case LOG_RESPONSES_PARAM:
+              builder
+                      .getClass()
+                      .getMethod(paramName, Boolean.class)
+                      .invoke(builder, params.get(paramName));
+              break;
+            case MAX_SEGMENTS_PER_BATCH_PARAM:
+              builder
+                      .getClass()
+                      .getMethod(paramName, Integer.class)
+                      .invoke(builder, ((Long) params.get(paramName)).intValue());
+              break;
+            case MAX_RETRIES_PARAM:
+              builder
+                      .getClass()
+                      .getMethod(paramName, Integer.class)
+                      .invoke(builder, ((Long) params.get(paramName)).intValue());
+              break;
+            default:
+              builder
+                      .getClass()
+                      .getMethod(paramName, String.class)
+                      .invoke(builder, params.get(paramName));
+          }
+        }
+      }
+      embedder = (EmbeddingModel) builder.getClass().getMethod("build").invoke(builder);
+      return new SolrEmbeddingModel(name, embedder, params);
+    } catch (final Exception e) {
+      throw new EmbeddingModelException("Model loading failed for " + className, e);
+    }
   }
 
   public float[] vectorise(String text) {

@@ -117,7 +117,7 @@ public class TextEmbedderQParserPlugin extends QParserPlugin
             {
               float[] vectorToSearch = embedder.vectorise(qstr);
               checkVectorDimension(vectorToSearch.length, fieldDimensions);
-              return denseVectorType.getKnnVectorQuery(
+              return new KnnFloatVectorQuery(
                   schemaField.getName(), vectorToSearch, topK, getFilterQuery());
             }
           default:

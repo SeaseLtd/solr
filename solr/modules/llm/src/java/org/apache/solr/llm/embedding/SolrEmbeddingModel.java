@@ -19,7 +19,9 @@ package org.apache.solr.llm.embedding;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.model.embedding.DimensionAwareEmbeddingModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
+import java.lang.reflect.Method;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.Objects;
 import org.apache.lucene.util.Accountable;
@@ -78,10 +80,20 @@ public class SolrEmbeddingModel implements Accountable {
                   .invoke(builder, ((Long) params.get(paramName)).intValue());
               break;
             default:
-              builder
-                  .getClass()
-                  .getMethod(paramName, String.class)
-                  .invoke(builder, params.get(paramName));
+              ArrayList<Method> methods = new ArrayList<>();
+              for (var method : builder.getClass().getMethods()) {
+                if (paramName.equals(method.getName()) && method.getParameterCount() == 1) {
+                  methods.add(method);
+                }
+              }
+              if (methods.size() == 1) {
+                methods.get(0).invoke(builder, params.get(paramName));
+              } else {
+                builder
+                    .getClass()
+                    .getMethod(paramName, String.class)
+                    .invoke(builder, params.get(paramName));
+              }
           }
         }
       }

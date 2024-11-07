@@ -23,17 +23,24 @@ import dev.langchain4j.model.output.Response;
 import java.util.List;
 
 public class DummyEmbeddingModel implements EmbeddingModel {
-  public DummyEmbeddingModel() {}
+  final float[] embedding;
+
+  public DummyEmbeddingModel(int embedding) {
+    this.embedding =
+        new float[] {
+          (embedding / 1000) % 10, (embedding / 100) % 10, (embedding / 10) % 10, embedding % 10
+        };
+  }
 
   @Override
   public Response<Embedding> embed(String text) {
-    Embedding dummy = new Embedding(new float[] {1.0f, 2.0f, 3.0f, 4.0f});
+    Embedding dummy = new Embedding(this.embedding);
     return new Response<Embedding>(dummy);
   }
 
   @Override
   public Response<Embedding> embed(TextSegment textSegment) {
-    Embedding dummy = new Embedding(new float[] {1.0f, 2.0f, 3.0f, 4.0f});
+    Embedding dummy = new Embedding(this.embedding);
     return new Response<Embedding>(dummy);
   }
 
@@ -44,7 +51,7 @@ public class DummyEmbeddingModel implements EmbeddingModel {
 
   @Override
   public int dimension() {
-    return 4;
+    return embedding.length;
   }
 
   public static DummyEmbeddingModelBuilder builder() {
@@ -52,10 +59,17 @@ public class DummyEmbeddingModel implements EmbeddingModel {
   }
 
   public static class DummyEmbeddingModelBuilder {
+    private int embedding = 0;
+
     public DummyEmbeddingModelBuilder() {}
 
+    public DummyEmbeddingModelBuilder embedding(Long embedding) {
+      this.embedding = embedding.intValue();
+      return this;
+    }
+
     public DummyEmbeddingModel build() {
-      return new DummyEmbeddingModel();
+      return new DummyEmbeddingModel(this.embedding);
     }
   }
 }

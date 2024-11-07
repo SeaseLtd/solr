@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.solr.llm.store;
+package org.apache.solr.llm.embedding;
 
 public class EmbeddingModelException extends RuntimeException {
 
-  private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;
 
-  public EmbeddingModelException(String message) {
-    super(message);
-  }
+    public EmbeddingModelException(String message) {
+        super(message);
+    }
 
-  public EmbeddingModelException(String message, Exception cause) {
-    super(message, cause);
-  }
+    public EmbeddingModelException(String message, Exception cause) {
+        super(message, cause);
+    }
 }

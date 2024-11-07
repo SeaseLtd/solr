@@ -17,21 +17,13 @@
 package org.apache.solr.llm;
 
 import java.lang.invoke.MethodHandles;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import org.apache.commons.io.file.PathUtils;
 import org.apache.solr.common.SolrInputDocument;
-import org.apache.solr.common.util.Utils;
-import org.apache.solr.core.SolrCore;
-import org.apache.solr.llm.embedding.SolrEmbeddingModel;
-import org.apache.solr.llm.store.EmbeddingModelException;
-import org.apache.solr.llm.store.rest.ManagedEmbeddingModelStore;
 import org.apache.solr.util.RestTestBase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,12 +54,6 @@ public class TestLlmBase extends RestTestBase {
     createJettyAndHarness(
         tmpSolrHome.toAbsolutePath().toString(), solrconfig, schema, "/solr", true, null);
     if (buildIndex) prepareIndex();
-  }
-
-  public static ManagedEmbeddingModelStore getManagedModelStore() {
-    try (SolrCore core = solrClientTestRule.getCoreContainer().getCore(DEFAULT_TEST_CORENAME)) {
-      return ManagedEmbeddingModelStore.getManagedModelStore(core);
-    }
   }
 
   protected static void initFolders(boolean isPersistent) throws Exception {
@@ -121,47 +107,6 @@ public class TestLlmBase extends RestTestBase {
     }
     sb.append("\n}\n");
     return sb.toString();
-  }
-
-  protected static void loadModel(String name, String className, String params) throws Exception {
-    final String model = getModelInJson(name, className, params);
-    log.info("loading model \n{} ", model);
-    assertJPut(ManagedEmbeddingModelStore.REST_END_POINT, model, "/responseHeader/status==0");
-  }
-
-  public static void loadModels(String fileName) throws Exception {
-    final URL url = TestLlmBase.class.getResource("/modelExamples/" + fileName);
-    final String multipleModels = Files.readString(Path.of(url.toURI()), StandardCharsets.UTF_8);
-
-    assertJPut(
-        ManagedEmbeddingModelStore.REST_END_POINT, multipleModels, "/responseHeader/status==0");
-  }
-
-  public static SolrEmbeddingModel createModelFromFiles(
-      String modelFileName, String featureFileName) throws EmbeddingModelException, Exception {
-    return createModelFromFiles(modelFileName, featureFileName);
-  }
-
-  public static SolrEmbeddingModel createModelFromFiles(String modelFileName) throws Exception {
-    URL url = TestLlmBase.class.getResource("/modelExamples/" + modelFileName);
-    final String modelJson = Files.readString(Path.of(url.toURI()), StandardCharsets.UTF_8);
-    final ManagedEmbeddingModelStore ms = getManagedModelStore();
-
-    final SolrEmbeddingModel model =
-        ManagedEmbeddingModelStore.fromEmbeddingModelMap(mapFromJson(modelJson));
-    ms.addModel(model);
-    return model;
-  }
-
-  @SuppressWarnings("unchecked")
-  private static Map<String, Object> mapFromJson(String json) throws EmbeddingModelException {
-    Object parsedJson = null;
-    try {
-      parsedJson = Utils.fromJSONString(json);
-    } catch (final Exception ioExc) {
-      throw new EmbeddingModelException("ObjectBuilder failed parsing json", ioExc);
-    }
-    return (Map<String, Object>) parsedJson;
   }
 
   protected static void prepareIndex() throws Exception {

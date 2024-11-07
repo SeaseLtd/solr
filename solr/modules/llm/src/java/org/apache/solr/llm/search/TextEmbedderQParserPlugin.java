@@ -92,20 +92,8 @@ public class TextEmbedderQParserPlugin extends QParserPlugin
       checkParam(qstr, "Query string is empty, nothing to embed");
       final String embeddingModelName = localParams.get(EMBEDDING_MODEL_PARAM);
       checkParam(embeddingModelName, "The 'model' parameter is missing");
-      SolrEmbeddingModel embedder;
-      InputStream jsonModel = getJsonModel(embeddingModelName, req);
-        try {
-          Map<String, Object> modelParams = new ObjectMapper().readValue(jsonModel, HashMap.class);
-          embedder = SolrEmbeddingModel.getInstance(modelParams);
-        } catch (IOException e) {
-          throw new SolrException(
-                  SolrException.ErrorCode.BAD_REQUEST,
-                  " 1- The model requested '"
-                          + embeddingModelName
-                          + "' can't be found in the store: "
-                          + ManagedEmbeddingModelStore.REST_END_POINT);        }
-       
-
+      Object embeddingModelsCache = req.getSearcher().cacheLookup("embeddingModelsCache", embeddingModelName);
+      SolrEmbeddingModel embedder = SolrEmbeddingModel.getInstance(embeddingModelName, req);
       if (embedder != null) {
         final SchemaField schemaField = req.getCore().getLatestSchema().getField(getFieldName());
         final DenseVectorField denseVectorType = getCheckedFieldType(schemaField);
@@ -134,22 +122,6 @@ public class TextEmbedderQParserPlugin extends QParserPlugin
                 + "' can't be found in the store: "
                 + ManagedEmbeddingModelStore.REST_END_POINT);
       }
-    }
-  }
-  
-  private InputStream getJsonModel(String embeddingModelName, SolrQueryRequest req){
-    final InputStream[] json = new InputStream[1];
-    try {
-      req.getCoreContainer().getFileStore().get(
-              MODELS_STORE_PATH + "/"+embeddingModelName,
-              it -> {
-                json[0] = it.getInputStream();
-              },
-              false);
-      return json[0];
-    } catch (IOException e) {
-      throw new SolrException(
-              SolrException.ErrorCode.SERVER_ERROR, "Error getting file from path " + MODELS_STORE_PATH + "/"+embeddingModelName);
     }
   }
 

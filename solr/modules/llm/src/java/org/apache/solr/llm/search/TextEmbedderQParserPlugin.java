@@ -52,32 +52,13 @@ import static org.apache.solr.llm.embedding.SolrEmbeddingModel.MODELS_STORE_PATH
  * https://solr.apache.org/guide/solr/latest/query-guide/dense-vector-search.html
  */
 public class TextEmbedderQParserPlugin extends QParserPlugin
-    implements ResourceLoaderAware, ManagedResourceObserver {
+{
   public static final String EMBEDDING_MODEL_PARAM = "model";
-  private ManagedEmbeddingModelStore modelStore = null;
 
   @Override
   public QParser createParser(
       String qstr, SolrParams localParams, SolrParams params, SolrQueryRequest req) {
     return new TextEmbedderQParser(qstr, localParams, params, req);
-  }
-
-  @Override
-  public void inform(ResourceLoader loader) throws IOException {
-    final SolrResourceLoader solrResourceLoader = (SolrResourceLoader) loader;
-    ManagedEmbeddingModelStore.registerManagedEmbeddingModelStore(solrResourceLoader, this);
-  }
-
-  @Override
-  public void onManagedResourceInitialized(NamedList<?> args, ManagedResource res)
-      throws SolrException {
-    if (res instanceof ManagedEmbeddingModelStore) {
-      modelStore = (ManagedEmbeddingModelStore) res;
-    }
-    if (modelStore != null) {
-      // now we can safely load the models
-      modelStore.loadStoredModels();
-    }
   }
 
   public class TextEmbedderQParser extends KnnQParser {
@@ -92,9 +73,7 @@ public class TextEmbedderQParserPlugin extends QParserPlugin
       checkParam(qstr, "Query string is empty, nothing to embed");
       final String embeddingModelName = localParams.get(EMBEDDING_MODEL_PARAM);
       checkParam(embeddingModelName, "The 'model' parameter is missing");
-      Object embeddingModelsCache = req.getSearcher().cacheLookup("embeddingModelsCache", embeddingModelName);
       SolrEmbeddingModel embedder = SolrEmbeddingModel.getInstance(embeddingModelName, req);
-      if (embedder != null) {
         final SchemaField schemaField = req.getCore().getLatestSchema().getField(getFieldName());
         final DenseVectorField denseVectorType = getCheckedFieldType(schemaField);
         int fieldDimensions = denseVectorType.getDimension();
@@ -114,14 +93,6 @@ public class TextEmbedderQParserPlugin extends QParserPlugin
                 SolrException.ErrorCode.SERVER_ERROR,
                 "Vector Encoding not supported in automatic text embedding: " + vectorEncoding);
         }
-      } else {
-        throw new SolrException(
-            SolrException.ErrorCode.BAD_REQUEST,
-            "2 - The model requested '"
-                + embeddingModelName
-                + "' can't be found in the store: "
-                + ManagedEmbeddingModelStore.REST_END_POINT);
-      }
     }
   }
 

@@ -35,28 +35,6 @@ public class TestModelManager extends TestLlmBase {
   }
 
   @Test
-  public void test() throws Exception {
-    final SolrResourceLoader loader = new SolrResourceLoader(tmpSolrHome);
-
-    final RestManager.Registry registry = loader.getManagedResourceRegistry();
-    assertNotNull(
-        "Expected a non-null RestManager.Registry from the SolrResourceLoader!", registry);
-
-    final String resourceId = "/schema/mstore1";
-    registry.registerManagedResource(
-        resourceId, ManagedEmbeddingModelStore.class, new TextEmbedderQParserPlugin());
-
-    final NamedList<String> initArgs = new NamedList<>();
-
-    final RestManager restManager = new RestManager();
-    restManager.init(loader, initArgs, new ManagedResourceStorage.InMemoryStorageIO());
-
-    final ManagedResource res = restManager.getManagedResource(resourceId);
-    assertTrue(res instanceof ManagedEmbeddingModelStore);
-    assertEquals(res.getResourceId(), resourceId);
-  }
-
-  @Test
   public void testRestManagerEndpoints() throws Exception {
     assertJQ("/schema/managed", "/responseHeader/status==0");
 

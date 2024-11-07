@@ -79,9 +79,9 @@ public class SolrEmbeddingModel implements Accountable {
     final InputStream[] json = new InputStream[1];
     try {
       req.getCoreContainer().getFileStore().get(
-              MODELS_STORE_PATH + "/"+embeddingModelName,
-              it -> {
-                json[0] = it.getInputStream();
+              MODELS_STORE_PATH + "/" + embeddingModelName,
+              file -> {
+                json[0] = file.getInputStream();
               },
               false);
       return json[0];

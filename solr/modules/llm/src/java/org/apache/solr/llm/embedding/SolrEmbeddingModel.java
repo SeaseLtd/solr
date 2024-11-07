@@ -32,8 +32,6 @@ public class SolrEmbeddingModel implements Accountable {
   private static final long BASE_RAM_BYTES =
       RamUsageEstimator.shallowSizeOfInstance(SolrEmbeddingModel.class);
   public static final String TIMEOUT_PARAM = "timeout";
-  public static final String LOG_REQUESTS_PARAM = "logRequests";
-  public static final String LOG_RESPONSES_PARAM = "logResponses";
   public static final String MAX_SEGMENTS_PER_BATCH_PARAM = "maxSegmentsPerBatch";
   public static final String MAX_RETRIES_PARAM = "maxRetries";
 
@@ -54,18 +52,6 @@ public class SolrEmbeddingModel implements Accountable {
             case TIMEOUT_PARAM:
               Duration timeOut = Duration.ofSeconds((Long) params.get(paramName));
               builder.getClass().getMethod(paramName, Duration.class).invoke(builder, timeOut);
-              break;
-            case LOG_REQUESTS_PARAM:
-              builder
-                  .getClass()
-                  .getMethod(paramName, Boolean.class)
-                  .invoke(builder, params.get(paramName));
-              break;
-            case LOG_RESPONSES_PARAM:
-              builder
-                  .getClass()
-                  .getMethod(paramName, Boolean.class)
-                  .invoke(builder, params.get(paramName));
               break;
             case MAX_SEGMENTS_PER_BATCH_PARAM:
               builder

@@ -23,12 +23,12 @@ With the *Large Language Model* (or *LLM* for short) module you can interact wit
 
 === From Text to Vector
 
-The task of sentence similarity aims to encode text to vector in a way that sentences semantically similar are encoded to vectors close in a vector space (using a vector distance metric).
+The goal of sentence similarity is to encode text into a vector in such a way that similar sentences are encoded into vectors close to each other in a vector space, using a vector distance metric.
 
 
 === Large Language Models 
 
-Large Language Models can be fine-tuned for such task.
+Large Language Models can be fine-tuned for such a task.
 The resulting model is able to encode text to a numerical vector.
 
 For additional information you can refer to this https://sease.io/2021/12/using-bert-to-improve-search-relevance.html[blog post].
@@ -39,27 +39,18 @@ Training, fine-tuning and operating such Large Language Models is expensive.
 
 Many companies focus on this aspect and let users access APIs to encode the text (at the price of a license fee).
 
-Apache Solr uses https://github.com/langchain4j/langchain4j[LangChain4j] to connect to such apis.
+Apache Solr uses https://github.com/langchain4j/langchain4j[LangChain4j] to connect to such APIs.  Solr works with some but not all models that LangChain4j supports.
 
-[IMPORTANT]
+Currently, the only supported way to interact with Large Language Models is via embedding text.
+
+[NOTE]
 ====
-At the moment a subset of the embedding models supported by LangChain4j is supported by Solr.
-
-*Disclaimer*: Apache Solr is *in no way* affiliated to any of these corporations or services.
-
-If you want to add support for additional services or improve the support for the existing ones, feel free to contribute:
-
-* https://github.com/apache/solr/blob/main/CONTRIBUTING.md[Contributing to Solr]
+  Apache Solr is *in no way* affiliated to any of these corporations or services, nor is it endorsing them.
 ====
 
 == Module
 
 This is provided via the `llm` xref:configuration-guide:solr-modules.adoc[Solr Module] that needs to be enabled before use.
-
-At the moment the only supported way to interact with Large Language Models is via embedding text.
-
-In the future additional components to empower Solr with LLM will be added.
-
 
 == LLM Configuration
 

@@ -385,15 +385,15 @@ You should use the `knn` query parser when:
 
 * you search for the top-K closest vectors to a query vector
 * you work directly with vectors (no text encoding is involved)
-* you want to a have a fine-grained control over the way you encode text to vector and prefer to do it outside of Apache Solr
+* you want to have fine-grained control over the way you encode text to vectors and prefer to do it outside of Solr
 
 
 == embed Query Parser
 
 You should use the `embed` query parser when:
 
-* you search for the top-K closest vectors to a query text
-* you work directly with text and want Solr to handle the encoding to vector behind the scenes
+* you search for the top-K closest vectors to the query text
+* you work directly with text and want Solr to handle the encoding to a vector behind the scenes
 * you are building demos/prototypes
 
 [IMPORTANT]

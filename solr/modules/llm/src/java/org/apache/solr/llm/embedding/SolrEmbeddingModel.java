@@ -19,25 +19,38 @@ package org.apache.solr.llm.embedding;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.model.embedding.EmbeddingModel;
-
 import java.io.IOException;
-import java.io.InputStream;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.apache.solr.common.SolrException;
+import org.apache.solr.common.SolrException.ErrorCode;
+import org.apache.solr.core.CoreContainer;
 import org.apache.solr.request.SolrQueryRequest;
+import org.apache.solr.search.CaffeineCache;
+import org.apache.solr.search.SolrCache;
+import org.apache.solr.search.SolrIndexSearcher;
+import org.apache.solr.util.IOFunction;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SolrEmbeddingModel implements Accountable {
+
+  private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+
   private static final long BASE_RAM_BYTES =
       RamUsageEstimator.shallowSizeOfInstance(SolrEmbeddingModel.class);
   public static final String MODELS_STORE_PATH = "/embedding-models";
-  
+
   public static final String TIMEOUT_PARAM = "timeout";
   public static final String MAX_SEGMENTS_PER_BATCH_PARAM = "maxSegmentsPerBatch";
   public static final String MAX_RETRIES_PARAM = "maxRetries";
@@ -46,52 +59,109 @@ public class SolrEmbeddingModel implements Accountable {
   protected final String name;
   private final Map<String, Object> params;
   private final EmbeddingModel embedder;
+  private final Instant fileModTime;
   private Integer hashCode;
 
-  public SolrEmbeddingModel(String name, EmbeddingModel embedder, Map<String, Object> params) {
+  public SolrEmbeddingModel(String name, EmbeddingModel embedder, Map<String, Object> params,
+      Instant fileModTime) {
     this.name = name;
     this.embedder = embedder;
     this.params = params;
+    this.fileModTime = fileModTime;
     this.hashCode = calculateHashCode();
   }
 
+  @SuppressWarnings("unchecked")
+  private static SolrCache<String, SolrEmbeddingModel> getSearcherCache(
+      SolrIndexSearcher searcher) {
+    return (SolrCache<String, SolrEmbeddingModel>) searcher.getCache(EMBEDDING_MODELS_CACHE);
+  }
+
+  @SuppressWarnings("unchecked")
+  private static SolrCache<String, SolrEmbeddingModel> getNodeCache(CoreContainer coreContainer) {
+    // explicitly configured; return it
+    var result = coreContainer.getCache(EMBEDDING_MODELS_CACHE);
+    if (result != null) {
+      return (SolrCache<String, SolrEmbeddingModel>) result;
+    }
+    // create one on the fly via the ObjectCache
+    return coreContainer
+        .getObjectCache()
+        .computeIfAbsent(
+            EMBEDDING_MODELS_CACHE,
+            SolrCache.class,
+            key -> new CaffeineCache<String, SolrEmbeddingModel>());
+  }
+
   public static SolrEmbeddingModel getInstance(String embeddingModelName, SolrQueryRequest req) {
-    SolrEmbeddingModel cachedModel = (SolrEmbeddingModel) req.getSearcher().cacheLookup(EMBEDDING_MODELS_CACHE, embeddingModelName);
-    if(cachedModel == null){
-      InputStream jsonModel = getJsonModel(embeddingModelName, req);
-      try {
-        Map<String, Object> modelParams = new ObjectMapper().readValue(jsonModel, HashMap.class);
-        SolrEmbeddingModel embedder = SolrEmbeddingModel.getInstance(modelParams);
-        req.getSearcher().cacheInsert(EMBEDDING_MODELS_CACHE, embeddingModelName, embedder);
-        return embedder;
-      } catch (IOException e) {
-        throw new SolrException(
-                SolrException.ErrorCode.BAD_REQUEST,
-                " The model requested '"
-                        + embeddingModelName
-                        + "' is not a well formed JSON");}
-    } else {
-      return cachedModel;
+    // searcher level cache.  Important to ensure results don't change for the same searcher.
+    final var searcherCache = getSearcherCache(req.getSearcher());
+    try {
+      return searcherCache.computeIfAbsent(
+          embeddingModelName, _unused -> getInstance(embeddingModelName, req.getCoreContainer()));
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
   }
 
-  private static InputStream getJsonModel(String embeddingModelName, SolrQueryRequest req){
-    final InputStream[] json = new InputStream[1];
-    try {
-      req.getCoreContainer().getFileStore().get(
-              MODELS_STORE_PATH + "/" + embeddingModelName,
-              file -> {
-                json[0] = file.getInputStream();
-              },
-              false);
-      return json[0];
-    } catch (IOException e) {
+  private static SolrEmbeddingModel getInstance(
+      String embeddingModelName, CoreContainer coreContainer) throws IOException {
+    // node level cache.  Don't reference the request / core / searcher.
+    //  Important for loading a model once on the node if the model hasn't changed.
+    //  We also do change detection here.
+    final var nodeCache = getNodeCache(coreContainer);
+    final var fileStore = coreContainer.getFileStore();
+    final var modelInfoPath = fileStore.getRealpath(MODELS_STORE_PATH + "/" + embeddingModelName);
+
+    if (Files.exists(modelInfoPath) == false) {
       throw new SolrException(
-              SolrException.ErrorCode.SERVER_ERROR, "Error getting file from path " + MODELS_STORE_PATH + "/"+embeddingModelName);
+          ErrorCode.BAD_REQUEST, "The model '" + embeddingModelName + "' does not exist");
+    }
+
+    final IOFunction<String, SolrEmbeddingModel> loadModelFunc =
+        _unused -> create(embeddingModelName, modelInfoPath);
+
+    final var lastModifiedTime = Files.getLastModifiedTime(modelInfoPath).toInstant();
+    final var model = nodeCache.computeIfAbsent(embeddingModelName, loadModelFunc);
+    if (!model.fileModTime.isBefore(lastModifiedTime)) {
+      return model;
+    }
+    // the model is out-of-date.  Clear the cache entry and reload it.
+
+    // synchronize avoids racing threads that clear and load the cache at the same time
+    synchronized (model) {
+      // maybe the cache entry has been replaced...
+      var model2 = nodeCache.get(embeddingModelName);
+      if (model != model2) {
+        log.debug("Racing threads; model changed {} to {}", model, model2);
+        if (model2 != null) {
+          return model2; // it has; just return the replacement
+        }
+        // null; we'll call computeIfAbsent below
+      } else {
+        log.info("Reloading changed model '{}'", embeddingModelName);
+        nodeCache.remove(embeddingModelName);
+      }
+      return nodeCache.computeIfAbsent(embeddingModelName, loadModelFunc);
     }
   }
-  
-  private static SolrEmbeddingModel getInstance(Map<String, Object> modelParams) {
+
+  private static @NotNull SolrEmbeddingModel create(String embeddingModelName, Path modelInfoPath) {
+    try {
+      // given a Path to a JSON file, parse it with Jackson to a Map
+      final var modelInfoJson = Files.readString(modelInfoPath);
+      @SuppressWarnings("unchecked")
+      Map<String, Object> modelInfo = new ObjectMapper().readValue(modelInfoJson, Map.class);
+      final var lastModifiedTime = Files.getLastModifiedTime(modelInfoPath).toInstant();
+      return SolrEmbeddingModel.create(modelInfo, lastModifiedTime);
+    } catch (Exception e) {
+      throw new SolrException(
+          ErrorCode.SERVER_ERROR, "Model '" + embeddingModelName + "' could not be loaded", e);
+    }
+  }
+
+  private static SolrEmbeddingModel create(
+      Map<String, Object> modelParams, Instant lastModifiedTime) {
     String className = modelParams.get("class").toString();
     String name = modelParams.get("name").toString();
     try {
@@ -137,7 +207,7 @@ public class SolrEmbeddingModel implements Accountable {
         }
       }
       embedder = (EmbeddingModel) builder.getClass().getMethod("build").invoke(builder);
-      return new SolrEmbeddingModel(name, embedder, params);
+      return new SolrEmbeddingModel(name, embedder, params, lastModifiedTime);
     } catch (final Exception e) {
       throw new EmbeddingModelException("Model loading failed for " + className, e);
     }

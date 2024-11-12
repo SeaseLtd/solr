@@ -21,7 +21,6 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Policy.Eviction;
 import com.github.benmanes.caffeine.cache.RemovalCause;
-import com.github.benmanes.caffeine.cache.RemovalListener;
 import com.github.benmanes.caffeine.cache.stats.CacheStats;
 import com.google.common.annotations.VisibleForTesting;
 import java.io.IOException;
@@ -66,7 +65,7 @@ import org.slf4j.LoggerFactory;
  * http://highscalability.com/blog/2016/1/25/design-of-a-modern-cache.html
  */
 public class CaffeineCache<K, V> extends SolrCacheBase
-    implements SolrCache<K, V>, Accountable, RemovalListener<K, V> {
+    implements SolrCache<K, V>, Accountable {
   private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
   private static final long BASE_RAM_BYTES_USED =
@@ -150,13 +149,13 @@ public class CaffeineCache<K, V> extends SolrCacheBase
 
     return persistence;
   }
-
+  
   private Cache<K, V> buildCache(Cache<K, V> prev) {
     Caffeine<K, V> builder =
         Caffeine.newBuilder()
             .initialCapacity(initialSize)
             .executor(executor)
-            .removalListener(this)
+            .removalListener(this::onRemoval)
             .recordStats();
     if (maxIdleTimeSec > 0) {
       builder.expireAfterAccess(Duration.ofSeconds(maxIdleTimeSec));
@@ -180,9 +179,8 @@ public class CaffeineCache<K, V> extends SolrCacheBase
     }
     return newCache;
   }
-
-  @Override
-  public void onRemoval(K key, V value, RemovalCause cause) {
+  
+  protected void onRemoval(K key, V value, RemovalCause cause) {
     ramBytes.add(
         -(RamUsageEstimator.sizeOfObject(key, RamUsageEstimator.QUERY_DEFAULT_RAM_BYTES_USED)
             + RamUsageEstimator.sizeOfObject(value, RamUsageEstimator.QUERY_DEFAULT_RAM_BYTES_USED)

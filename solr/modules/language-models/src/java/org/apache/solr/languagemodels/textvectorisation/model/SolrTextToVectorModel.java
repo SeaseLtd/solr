@@ -29,7 +29,7 @@ import org.apache.lucene.util.RamUsageEstimator;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.core.SolrResourceLoader;
 import org.apache.solr.languagemodels.model.SolrLanguageModel;
-import org.apache.solr.languagemodels.textvectorisation.store.TextToVectorModelException;
+import org.apache.solr.languagemodels.store.LanguageModelException;
 import org.apache.solr.languagemodels.textvectorisation.store.rest.ManagedTextToVectorModelStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,7 +53,7 @@ public class SolrTextToVectorModel extends SolrLanguageModel implements Accounta
       String className,
       String name,
       Map<String, Object> params)
-      throws TextToVectorModelException {
+      throws LanguageModelException {
     try {
       /*
        * The idea here is to build a {@link dev.langchain4j.model.embedding.EmbeddingModel} using inversion
@@ -122,7 +122,7 @@ public class SolrTextToVectorModel extends SolrLanguageModel implements Accounta
       textToVector = (EmbeddingModel) builder.getClass().getMethod("build").invoke(builder);
       return new SolrTextToVectorModel(name, textToVector, params);
     } catch (final Exception e) {
-      throw new TextToVectorModelException("Model loading failed for " + className, e);
+      throw new LanguageModelException("Model loading failed for " + className, e);
     }
   }
 

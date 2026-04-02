@@ -30,8 +30,9 @@ import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.core.SolrResourceLoader;
-import org.apache.solr.languagemodels.documentenrichment.store.LargeLanguageModelException;
+import org.apache.solr.languagemodels.store.LanguageModelException;
 import org.apache.solr.languagemodels.documentenrichment.store.rest.ManagedLargeLanguageModelStore;
+import org.apache.solr.languagemodels.model.SolrLanguageModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,9 +44,9 @@ public class SolrLargeLanguageModel extends SolrLanguageModel implements Account
   private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
   private static final long BASE_RAM_BYTES =
       RamUsageEstimator.shallowSizeOfInstance(SolrLargeLanguageModel.class);
-  private static final String TIMEOUT_PARAM = "timeout";
-  private static final String MAX_RETRIES_PARAM = "maxRetries";
 
+  private static final String THINKING_BUDGET_TOKENS = "thinkingBudgetTokens";
+  private static final String RANDOM_SEED = "randomSeed";
 
   private final ChatModel chatModel;
   private final int hashCode;
@@ -55,7 +56,7 @@ public class SolrLargeLanguageModel extends SolrLanguageModel implements Account
       String className,
       String name,
       Map<String, Object> params)
-      throws LargeLanguageModelException {
+      throws LanguageModelException {
     try {
       /*
        * The idea here is to build a {@link dev.langchain4j.model.chat.ChatModel} using inversion
@@ -138,7 +139,7 @@ public class SolrLargeLanguageModel extends SolrLanguageModel implements Account
       chatModel = (ChatModel) builder.getClass().getMethod("build").invoke(builder);
       return new SolrLargeLanguageModel(name, chatModel, params);
     } catch (final Exception e) {
-      throw new LargeLanguageModelException("Model loading failed for " + className, e);
+      throw new LanguageModelException("Model loading failed for " + className, e);
     }
   }
 

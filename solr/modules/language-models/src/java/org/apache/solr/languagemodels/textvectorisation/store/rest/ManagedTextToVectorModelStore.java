@@ -27,7 +27,7 @@ import org.apache.solr.common.util.NamedList;
 import org.apache.solr.core.SolrCore;
 import org.apache.solr.core.SolrResourceLoader;
 import org.apache.solr.languagemodels.textvectorisation.model.SolrTextToVectorModel;
-import org.apache.solr.languagemodels.textvectorisation.store.TextToVectorModelException;
+import org.apache.solr.languagemodels.store.LanguageModelException;
 import org.apache.solr.languagemodels.textvectorisation.store.TextToVectorModelStore;
 import org.apache.solr.response.SolrQueryResponse;
 import org.apache.solr.rest.BaseSolrResource;
@@ -139,18 +139,18 @@ public class ManagedTextToVectorModelStore extends ManagedResource
   private void addModelFromMap(Map<String, Object> modelMap) {
     try {
       addModel(fromModelMap(solrResourceLoader, modelMap));
-    } catch (final TextToVectorModelException e) {
+    } catch (final LanguageModelException e) {
       throw new SolrException(SolrException.ErrorCode.BAD_REQUEST, e);
     }
   }
 
-  public void addModel(SolrTextToVectorModel model) throws TextToVectorModelException {
+  public void addModel(SolrTextToVectorModel model) throws LanguageModelException {
     try {
       if (log.isInfoEnabled()) {
         log.info("adding model {}", model.getName());
       }
       store.addModel(model);
-    } catch (final TextToVectorModelException e) {
+    } catch (final LanguageModelException e) {
       throw new SolrException(SolrException.ErrorCode.BAD_REQUEST, e);
     }
   }

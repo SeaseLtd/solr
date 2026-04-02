@@ -22,6 +22,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.solr.languagemodels.documentenrichment.model.SolrLargeLanguageModel;
+import org.apache.solr.languagemodels.store.LanguageModelException;
 
 /** Simple store to manage CRUD operations on the {@link SolrLargeLanguageModel} */
 public class LargeLanguageModelStore {
@@ -56,10 +57,10 @@ public class LargeLanguageModelStore {
     return availableModels.remove(modelName);
   }
 
-  public void addModel(SolrLargeLanguageModel modeldata) throws LargeLanguageModelException {
+  public void addModel(SolrLargeLanguageModel modeldata) throws LanguageModelException {
     final String name = modeldata.getName();
     if (availableModels.putIfAbsent(modeldata.getName(), modeldata) != null) {
-      throw new LargeLanguageModelException(
+      throw new LanguageModelException(
           "model '" + name + "' already exists. Please use a different name");
     }
   }

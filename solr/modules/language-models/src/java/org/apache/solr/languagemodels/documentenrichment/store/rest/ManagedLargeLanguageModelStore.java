@@ -27,7 +27,7 @@ import org.apache.solr.common.util.NamedList;
 import org.apache.solr.core.SolrCore;
 import org.apache.solr.core.SolrResourceLoader;
 import org.apache.solr.languagemodels.documentenrichment.model.SolrLargeLanguageModel;
-import org.apache.solr.languagemodels.documentenrichment.store.LargeLanguageModelException;
+import org.apache.solr.languagemodels.store.LanguageModelException;
 import org.apache.solr.languagemodels.documentenrichment.store.LargeLanguageModelStore;
 import org.apache.solr.response.SolrQueryResponse;
 import org.apache.solr.rest.BaseSolrResource;
@@ -131,8 +131,8 @@ public class ManagedLargeLanguageModelStore extends ManagedResource
   private void addModelFromMap(Map<String, Object> modelMap) {
     try {
       addModel(fromModelMap(solrResourceLoader, modelMap));
-    } catch (final LargeLanguageModelException e) {
-      throw new SolrException(SolrException.ErrorCode.BAD_REQUEST, e.getMessage(), e);
+    } catch (final LanguageModelException e) {
+      throw new SolrException(SolrException.ErrorCode.BAD_REQUEST, e);
     }
   }
 
@@ -142,7 +142,7 @@ public class ManagedLargeLanguageModelStore extends ManagedResource
         log.info("adding model {}", model.getName());
       }
       store.addModel(model);
-    } catch (final LargeLanguageModelException e) {
+    } catch (final LanguageModelException e) {
       throw new SolrException(SolrException.ErrorCode.BAD_REQUEST, e);
     }
   }

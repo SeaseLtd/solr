@@ -22,6 +22,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.solr.languagemodels.textvectorisation.model.SolrTextToVectorModel;
+import org.apache.solr.languagemodels.store.LanguageModelException;
 
 /** Simple store to manage CRUD operations on the {@link SolrTextToVectorModel} */
 public class TextToVectorModelStore {
@@ -57,10 +58,10 @@ public class TextToVectorModelStore {
     return availableModels.remove(modelName);
   }
 
-  public void addModel(SolrTextToVectorModel modeldata) throws TextToVectorModelException {
+  public void addModel(SolrTextToVectorModel modeldata) throws LanguageModelException {
     final String name = modeldata.getName();
     if (availableModels.putIfAbsent(modeldata.getName(), modeldata) != null) {
-      throw new TextToVectorModelException(
+      throw new LanguageModelException(
           "model '" + name + "' already exists. Please use a different name");
     }
   }

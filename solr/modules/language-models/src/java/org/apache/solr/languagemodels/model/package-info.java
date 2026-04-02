@@ -16,4 +16,4 @@
  */
 
 /** Contains model store related classes. */
-package org.apache.solr.languagemodels.textvectorisation.store;
+package org.apache.solr.languagemodels.model;

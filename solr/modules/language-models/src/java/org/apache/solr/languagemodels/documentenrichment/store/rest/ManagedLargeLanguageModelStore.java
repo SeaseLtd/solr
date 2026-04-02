@@ -94,7 +94,7 @@ public class ManagedLargeLanguageModelStore extends ManagedResource
   private static LinkedHashMap<String, Object> toModelMap(SolrLargeLanguageModel model) {
     final LinkedHashMap<String, Object> modelMap = new LinkedHashMap<>(3, 1.0f);
     modelMap.put(NAME_KEY, model.getName());
-    modelMap.put(CLASS_KEY, model.getChatModelClassName());
+    modelMap.put(CLASS_KEY, model.getModelClassName());
     modelMap.put(PARAMS_KEY, model.getParams());
     return modelMap;
   }

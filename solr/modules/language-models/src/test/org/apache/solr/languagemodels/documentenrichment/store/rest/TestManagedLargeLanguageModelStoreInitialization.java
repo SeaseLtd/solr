@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.solr.languagemodels.textvectorisation.store.rest;
+package org.apache.solr.languagemodels.documentenrichment.store.rest;
 
 import org.apache.solr.languagemodels.TestLanguageModelBase;
 import org.junit.After;
 import org.junit.Test;
 
-public class TestManagedModelStoreInitialization extends TestLanguageModelBase {
+public class TestManagedLargeLanguageModelStoreInitialization extends TestLanguageModelBase {
 
   @After
   public void cleanUp() throws Exception {
@@ -28,40 +28,23 @@ public class TestManagedModelStoreInitialization extends TestLanguageModelBase {
   }
 
   @Test
-  public void managedModelStore_whenUpdateRequestComponentConfigured_shouldBeInitialized()
+  public void managedLargeLanguageModelStore_whenUpdateRequestComponentConfigured_shouldBeInitialized()
       throws Exception {
-    setupTest(
-        "solrconfig-language-models-update-request-processor-only.xml",
-        "schema-language-models.xml",
-        false,
-        false);
+    setupTest("solrconfig-document-enrichment.xml", "schema-language-models.xml", false, false);
 
-    assertJQ(ManagedTextToVectorModelStore.REST_END_POINT, "/responseHeader/status==0");
-    assertJQ(ManagedTextToVectorModelStore.REST_END_POINT, "/models==[]");
+    assertJQ(ManagedLargeLanguageModelStore.REST_END_POINT, "/responseHeader/status==0");
+    assertJQ(ManagedLargeLanguageModelStore.REST_END_POINT, "/models==[]");
   }
 
   @Test
-  public void managedModelStore_whenQueryParserComponentConfigured_shouldBeInitialized()
-      throws Exception {
-    setupTest(
-        "solrconfig-language-models-query-parser-only.xml",
-        "schema-language-models.xml",
-        false,
-        false);
-
-    assertJQ(ManagedTextToVectorModelStore.REST_END_POINT, "/responseHeader/status==0");
-    assertJQ(ManagedTextToVectorModelStore.REST_END_POINT, "/models==[]");
-  }
-
-  @Test
-  public void managedModelStore_whenNoComponents_shouldNotBeInitialized() throws Exception {
+  public void managedLargeLanguageModelStore_whenNoComponents_shouldNotBeInitialized() throws Exception {
     setupTest(
         "solrconfig-language-models-no-components.xml", "schema-language-models.xml", false, false);
     assertJQ(
-        ManagedTextToVectorModelStore.REST_END_POINT,
+        ManagedLargeLanguageModelStore.REST_END_POINT,
         "/responseHeader/status==400",
         "/error/msg=='No REST managed resource registered for path "
-            + ManagedTextToVectorModelStore.REST_END_POINT
+            + ManagedLargeLanguageModelStore.REST_END_POINT
             + "'");
   }
 }

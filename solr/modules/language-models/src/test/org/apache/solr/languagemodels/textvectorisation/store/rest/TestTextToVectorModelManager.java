@@ -27,7 +27,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class TestModelManager extends TestLanguageModelBase {
+public class TestTextToVectorModelManager extends TestLanguageModelBase {
 
   @BeforeClass
   public static void init() throws Exception {

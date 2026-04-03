@@ -14,26 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.solr.languagemodels.documentenrichment.store;
+package org.apache.solr.languagemodels.store;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.solr.languagemodels.documentenrichment.model.SolrLargeLanguageModel;
-import org.apache.solr.languagemodels.store.LanguageModelException;
 
-/** Simple store to manage CRUD operations on the {@link SolrLargeLanguageModel} */
-public class LargeLanguageModelStore {
+import org.apache.solr.languagemodels.model.SolrLanguageModel;
 
-  private final Map<String, SolrLargeLanguageModel> availableModels;
+/** Generic store to manage CRUD operations on models that extend {@link SolrLanguageModel} */
+public class LanguageModelStore<M extends SolrLanguageModel> {
 
-  public LargeLanguageModelStore() {
+  private final Map<String, M> availableModels;
+
+  public LanguageModelStore() {
     availableModels = Collections.synchronizedMap(new LinkedHashMap<>());
   }
 
-  public SolrLargeLanguageModel getModel(String name) {
+  public M getModel(String name) {
     return availableModels.get(name);
   }
 
@@ -41,25 +41,26 @@ public class LargeLanguageModelStore {
     availableModels.clear();
   }
 
-  public List<SolrLargeLanguageModel> getModels() {
+  public List<M> getModels() {
     synchronized (availableModels) {
-      final List<SolrLargeLanguageModel> availableModelsValues = new ArrayList<>(availableModels.values());
+      final List<M> availableModelsValues =
+          new ArrayList<>(availableModels.values());
       return Collections.unmodifiableList(availableModelsValues);
     }
   }
 
   @Override
   public String toString() {
-    return "LargeLanguageModelStore [availableModels=" + availableModels.keySet() + "]";
+    return "LanguageModelStore [availableModels=" + availableModels.keySet() + "]";
   }
 
-  public SolrLargeLanguageModel delete(String modelName) {
+  public M delete(String modelName) {
     return availableModels.remove(modelName);
   }
 
-  public void addModel(SolrLargeLanguageModel modeldata) throws LanguageModelException {
-    final String name = modeldata.getName();
-    if (availableModels.putIfAbsent(modeldata.getName(), modeldata) != null) {
+  public void addModel(M modelData) throws LanguageModelException {
+    final String name = modelData.getName();
+    if (availableModels.putIfAbsent(name, modelData) != null) {
       throw new LanguageModelException(
           "model '" + name + "' already exists. Please use a different name");
     }

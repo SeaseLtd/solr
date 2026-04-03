@@ -99,7 +99,7 @@ public class TestLanguageModelBase extends RestTestBase {
   }
 
   public static void loadModel(String fileName, String status) throws Exception {
-    final URL url = TestLanguageModelBase.class.getResource("/modelExamples/" + fileName);
+    final URL url = TestLanguageModelBase.class.getResource("/embeddingModelExamples/" + fileName);
     final String multipleModels = Files.readString(Path.of(url.toURI()), StandardCharsets.UTF_8);
 
     assertJPut(
@@ -109,7 +109,7 @@ public class TestLanguageModelBase extends RestTestBase {
   }
 
   public static void loadModel(String fileName) throws Exception {
-    final URL url = TestLanguageModelBase.class.getResource("/modelExamples/" + fileName);
+    final URL url = TestLanguageModelBase.class.getResource("/embeddingModelExamples/" + fileName);
     final String multipleModels = Files.readString(Path.of(url.toURI()), StandardCharsets.UTF_8);
 
     assertJPut(

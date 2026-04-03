@@ -14,33 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.solr.languagemodels.model;
 
-import java.util.Map;
-
-/** Base class for Solr-managed wrappers around langchain4j language model instances. */
-public abstract class SolrLanguageModel {
-
-  // common parameters
-  protected static final String TIMEOUT_PARAM = "timeout";
-  protected static final String MAX_RETRIES_PARAM = "maxRetries";
-
-  protected final String name;
-  protected final Map<String, Object> params;
-
-  protected SolrLanguageModel(String name, Map<String, Object> params) {
-    this.name = name;
-    this.params = params;
-  }
-
-  public String getName() {
-    return name;
-  }
-
-  public Map<String, Object> getParams() {
-    return params;
-  }
-
-  /** Returns the class name of the underlying langchain4j model instance. */
-  public abstract String getModelClassName();
-}
+/** Contains model store related classes. */
+package org.apache.solr.languagemodels.store.rest;

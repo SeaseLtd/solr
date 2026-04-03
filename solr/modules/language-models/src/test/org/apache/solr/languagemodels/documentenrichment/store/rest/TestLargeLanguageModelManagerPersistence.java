@@ -39,7 +39,7 @@ public class TestLargeLanguageModelManagerPersistence extends TestLanguageModelB
   }
 
   @Test
-  public void testModelAreStoredCompact() throws Exception {
+  public void testModelAreStored() throws Exception {
     loadLargeLanguageModel("openai-model.json");
 
     final String JSONOnDisk = Files.readString(largeLanguageModelStoreFile, StandardCharsets.UTF_8);

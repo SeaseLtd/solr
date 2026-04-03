@@ -16,4 +16,4 @@
  */
 
 /** Contains model store related classes. */
-package org.apache.solr.languagemodels.documentenrichment.store;
+package org.apache.solr.languagemodels.store;

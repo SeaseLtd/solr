@@ -120,8 +120,7 @@ public class TestLanguageModelBase extends RestTestBase {
     final URL url = TestLanguageModelBase.class.getResource("/modelChatExamples/" + fileName);
     final String model = Files.readString(Path.of(url.toURI()), StandardCharsets.UTF_8);
 
-    assertJPut(
-        ManagedChatModelStore.REST_END_POINT, model, "/responseHeader/status==" + status);
+    assertJPut(ManagedChatModelStore.REST_END_POINT, model, "/responseHeader/status==" + status);
   }
 
   public static void loadChatModel(String fileName, String status, String message)
@@ -130,18 +129,14 @@ public class TestLanguageModelBase extends RestTestBase {
     final String model = Files.readString(Path.of(url.toURI()), StandardCharsets.UTF_8);
 
     assertJPut(
-        ManagedChatModelStore.REST_END_POINT,
-        model,
-        "/responseHeader/status==" + status,
-        message);
+        ManagedChatModelStore.REST_END_POINT, model, "/responseHeader/status==" + status, message);
   }
 
   public static void loadChatModel(String fileName) throws Exception {
     final URL url = TestLanguageModelBase.class.getResource("/modelChatExamples/" + fileName);
     final String model = Files.readString(Path.of(url.toURI()), StandardCharsets.UTF_8);
 
-    assertJPut(
-        ManagedChatModelStore.REST_END_POINT, model, "/responseHeader/status==0");
+    assertJPut(ManagedChatModelStore.REST_END_POINT, model, "/responseHeader/status==0");
   }
 
   protected static void prepareIndex() throws Exception {
